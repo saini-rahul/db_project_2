@@ -5,6 +5,9 @@
 using namespace std;
 
 #define NUM_TRACKS 100
+#define avg_seek_time 6.46
+#define avg_rotation_latency 4.17
+#define avg_transfer_time_per_block 64
 
 /* Simplified assumptions are made for disks. A disk contains many tracks. 
  * We assume each relation reside on a single track of blocks on disk. 
@@ -26,9 +29,9 @@ class Disk {
     //If memory has 1/6 of the relation size, then the memory has only 160K space
     //However, we want to simulate the speed of a 300M relation and a 50M memory
     //So we increase the transfer time of a block by 320 folds
-    static const double avg_seek_time=6.46;
-    static const double avg_rotation_latency=4.17;
-    static const double avg_transfer_time_per_block=0.20 * 320;
+    //static const double avg_seek_time=6.46;
+    //static const double avg_rotation_latency=4.17;
+    //static const double avg_transfer_time_per_block=0.20 * 320;
 
     vector<Block> tracks[NUM_TRACKS];
     unsigned long int diskIOs;

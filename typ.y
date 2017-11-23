@@ -1,6 +1,6 @@
 %{
 #include<stdio.h>
-#include "typ.h"
+#include "db_manager.h"
 //#include<conio.h>
 //extern "C" int yylex();
 extern int  yyparse();
@@ -48,7 +48,7 @@ void yyerror(const char *s);
 %token <sttr> NAME
 %token EE GE LE NE AA OO NEWLINE
 %token CREATE TABLE WHERE DELETE FROM INTO INSERT SELECT
-%token VALUES DROP ORDER BY INT STR20 AND OR DISTINCT NUL
+%token VALUES DROP ORDER BY INT_L STR20_L AND OR DISTINCT NUL
 
 %type<st_ls>statement_list
 %type<st>statement
@@ -263,9 +263,9 @@ attribute_name
 ;
 
 data_type:
-INT
+INT_L
 { $$= new Data_type("INT"); } 
-| STR20
+| STR20_L
 { $$= new Data_type("STR20"); }
 ;
 
@@ -273,10 +273,17 @@ INT
 %%
 int main()
 {
+ MainMemory mem;
+ Disk disk;
+ db_manager dbManager(&mem, &disk);
+ 
  while(1)
  {
 	yyparse();
 	root -> printFunc();
+	cout<<"end of print"<<endl;
+	dbManager.process_statement(root);
+	
 	yylex_destroy();
  }
  return 0;

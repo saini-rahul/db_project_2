@@ -48,8 +48,8 @@
 "NULL" { return NUL; }
 "OR" { return OR; }
 "AND" { return AND; }
-"INT" { return INT; }
-"STR20" { return STR20; }
+"INT" { return INT_L; }
+"STR20" { return STR20_L; }
 "EOL" { return 0; }
 
 

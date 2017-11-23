@@ -1,11 +1,9 @@
 Please make sure to include all the .h files in your own program.
-Before compiling, modify the Makefile and review the parameter settings in Config.h.
+Before compiling, review the parameter settings in Config.h.
 
-Use the following commands to compile and run the test program.
-
-make clean
-make
-./TestStorageManager >& test_log
+The file TestStorageManager.cpp is a test program. 
+The program writes output to the file test_log.
+The program also generates error message from the parts of error testing.
 
 If you find a bug when using the library, please report to the TA immediately.
 
@@ -24,6 +22,7 @@ The data structure of StorageManager is summerized below in a bottom-up fasion:
    The max number of tuples held in a block = FIELDS_PER_BLOCK / num_of_fields_in_tuple
 
   You can also get the number by calling Schema::getTuplesPerBlock().
+
 - Class "Relation": Each relation is assumed to be stored in consecutive disk blocks on a single track of the disk (That is, in clustered way). The disk blocks on the track are numbered by 0,1,2,... The tuples in a relation cannot be read directly. You have to copy disk blocks of the relation to memory blocks before accessing the tuples inside the blocks. In the other direction, if you need to write to the relation, you have to write to a memory block, and then copy the memory block to a disk block of the relation. The Relation class can be used to create a new Tuple.
 
 - Class "Schema": A schema specifies what a tuple of a partiular relation contains, including field names, and field types in a defined order. The field names and types are given offsets according to the defined order. Every schema specifies at most total MAX_NUM_OF_FIELDS_IN_RELATION=8 fields. The size of a tuple is the total number of fields specified in the schema. The tuple size will affect the number of tuples which can be held in one disk block or memory block.

@@ -15,7 +15,6 @@ union Field {
 public:
     string* str;
     int integer;
-
     Field() {}
 };
 

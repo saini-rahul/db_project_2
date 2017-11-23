@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.4.  */
+/* A Bison parser, made by GNU Bison 3.0.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -66,8 +66,8 @@ extern int yydebug;
     DROP = 276,
     ORDER = 277,
     BY = 278,
-    INT = 279,
-    STR20 = 280,
+    INT_L = 279,
+    STR20_L = 280,
     AND = 281,
     OR = 282,
     DISTINCT = 283,
@@ -96,8 +96,8 @@ extern int yydebug;
 #define DROP 276
 #define ORDER 277
 #define BY 278
-#define INT 279
-#define STR20 280
+#define INT_L 279
+#define STR20_L 280
 #define AND 281
 #define OR 282
 #define DISTINCT 283
@@ -105,7 +105,7 @@ extern int yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-
+typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
 #line 15 "typ.y" /* yacc.c:1909  */
@@ -143,8 +143,6 @@ union YYSTYPE
 
 #line 145 "y.tab.h" /* yacc.c:1909  */
 };
-
-typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif

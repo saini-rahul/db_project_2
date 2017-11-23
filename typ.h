@@ -1,15 +1,14 @@
+#ifndef _typ_h
+#define _typ_h
+
 #include<iostream>
 #include<string.h>
-
 
 using namespace std;
 
 class Node
 {
 	public:	
-	/*virtual void typecheck1()
-	{
-	}*/
 
 };
 
@@ -261,3 +260,4 @@ public:
 	}
 };
 
+#endif

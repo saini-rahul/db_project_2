@@ -1,6 +1,7 @@
 #include <iostream>
 #include <ctime>
 #include <climits>
+#include <string>
 #include "Block.h"
 #include "Config.h"
 #include "Disk.h"
@@ -45,7 +46,7 @@ bool Disk::extendTrack(int schema_index, int block_index, const Tuple& t) {
   if (block_index<0) {
     cerr << "extendTrack ERROR: block index " << block_index << " out of disk bound" << endl;
     return false;
-  }   
+  }
   vector<Block>& track=tracks[schema_index];
   int j=track.size();
   if (block_index>j) {
@@ -713,7 +714,7 @@ bool Relation::getBlocks(int relation_block_index, int memory_block_index, int n
   }
   int i;
   if ((i=memory_block_index+num_blocks-1)>=NUM_OF_BLOCKS_IN_MEMORY) {
-    cerr << "getBlocks ERROR: access to block out of memory bound" << i << endl;
+    cerr << "getBlocks ERROR: access to block out of memory bound: " << i << endl;
     return false;
   }
   /*
