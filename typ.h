@@ -206,7 +206,10 @@ public:
 class Select_statement:public Node{
 public:
 	Select_statement_rest *sl_st_rs;
+	char *op_ds;
+	
 	Select_statement(Select_statement_rest *sl_st_rs);
+	Select_statement(Select_statement_rest *sl_st_rs, char *op_ds);
 };
 
 class Insert_touples:public Node{

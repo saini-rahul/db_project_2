@@ -30,7 +30,10 @@ class db_manager{
         
         bool process_drop_statement(Drop_statement *dr_st);
         
-        bool process_select_statement(Select_statement *sl_st);
+        bool process_select_statement(Select_statement_rest *, char *);
+        bool process_table_list(Table_list *tb_ls, vector<string>& table_names);
+        bool process_search_condition(Search_condition *sr_cn);
+
 };
 
 #endif

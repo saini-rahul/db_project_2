@@ -16,21 +16,18 @@ bool db_manager::process_statement(Statement_list *root)
     }
     else if(root->st->sl_st != '\0')
     {
-        return process_select_statement(root->st->is_st);
+        return process_select_statement(root->st->sl_st->sl_st_rs, root->st->sl_st->op_ds);
     }
 }
 
-bool db_manager::process_select_statement(Select_statement *sl_st)
+bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
 {
     vector<string> table_names;
-    vector<enum FIELD_TYPE> field_types;
-    process_table_list(sl_st->tb_ls, table_names);
-    Schema schema(field_names , field_types);
+    process_table_list(sl_rs->tb_ls, table_names);
+    process_search_condition(sl_rs->sr_cn);
     
-    cout<<"error here"<<cr_st->tb_nm->nm<<endl;
-    string relation_name(cr_st->tb_nm->nm);
-    cout << "Creating table " << relation_name << endl;  
-    Relation* relation_ptr=schema_manager.createRelation(relation_name,schema);
+    /*cout << "Creating table " << relation_name << endl;  
+    Relation* relation_ptr=schema_manager.getRelation(relation_name);
     if(relation_ptr == '\0')
     {
         return false;
@@ -41,11 +38,24 @@ bool db_manager::process_select_statement(Select_statement *sl_st)
     cout << relation_ptr->getSchema() << endl;
     cout << "The table currently have " << relation_ptr->getNumOfBlocks() << " blocks" << endl;
     cout << "The table currently have " << relation_ptr->getNumOfTuples() << " tuples" << endl << endl;
-    std::cout << schema_manager << std::endl;
+    std::cout << schema_manager << std::endl;*/
+    
+    if(d == '\0')
+    {
+        std::cout << "Not distinct" << std::endl;
+    }
     return true;
 }
 
+bool db_manager::process_table_list(Table_list *tb_ls, vector<string>& table_names)
+{
+    return 1;
+}
 
+bool db_manager::process_search_condition(Search_condition *sr_cn)
+{
+    return 1;
+}
 
 bool db_manager::process_insert_statement(Insert_statement *is_st)
 {

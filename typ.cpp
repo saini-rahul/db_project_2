@@ -259,7 +259,17 @@ Select_statement_rest::Select_statement_rest(Select_list *sl_ls, Table_list *tb_
 Select_statement::Select_statement(Select_statement_rest *sl_st_rs)
 {
 	this-> sl_st_rs= sl_st_rs;
+	this->op_ds ='\0';
 }
+
+Select_statement::Select_statement(Select_statement_rest *sl_st_rs, char *op_ds)
+{
+	this-> sl_st_rs= sl_st_rs;
+	
+	this->op_ds =new char[10];
+	strcpy(this->op_ds, op_ds);
+}
+
 
 Insert_touples::Insert_touples(Value_list *vl_ls)
 {

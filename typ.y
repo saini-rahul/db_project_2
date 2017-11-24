@@ -117,7 +117,7 @@ DROP TABLE table_name
 
 select_statement:
 SELECT DISTINCT select_statement_rest
-{ $$= new Select_statement($3); }
+{ $$= new Select_statement( $3, "DISTINCT" ); }
 | SELECT select_statement_rest
 { $$= new Select_statement($2); }
 

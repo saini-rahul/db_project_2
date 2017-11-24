@@ -1431,7 +1431,7 @@ return 1;
 
   case 12:
 #line 120 "typ.y" /* yacc.c:1646  */
-    { (yyval.sl_st)= new Select_statement((yyvsp[0].sl_rs)); }
+    { (yyval.sl_st)= new Select_statement( (yyvsp[0].sl_rs), "DISTINCT" ); }
 #line 1436 "y.tab.c" /* yacc.c:1646  */
     break;
 
@@ -1444,7 +1444,7 @@ return 1;
   case 14:
 #line 128 "typ.y" /* yacc.c:1646  */
     { (yyval.sl_rs)= new Select_statement_rest((yyvsp[-2].sl_li), (yyvsp[0].tb_st)); 
-YYACCEPT;}
+}
 #line 1449 "y.tab.c" /* yacc.c:1646  */
     break;
 

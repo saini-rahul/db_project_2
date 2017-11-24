@@ -1070,7 +1070,7 @@ case 49:
 YY_RULE_SETUP
 #line 76 "typ.l"
 { 
-return 0; };  
+return NEWLINE; };  
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
