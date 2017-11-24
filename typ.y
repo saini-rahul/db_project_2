@@ -1,7 +1,7 @@
 %{
 #include<stdio.h>
 #include "db_manager.h"
-//#include<conio.h>
+//#include <conio.h>
 //extern "C" int yylex();
 extern int  yyparse();
 extern int yylex_destroy(void);
@@ -80,7 +80,7 @@ void yyerror(const char *s);
 %%
 
 statement_list:
-statement ';'
+statement
 { root= new Statement_list($1); 
 return 1;
 };
@@ -88,13 +88,13 @@ return 1;
 statement:
 create_statement 
 { $$= new Statement($1); }
-| drop_statement 
+| drop_statement
 { $$= new Statement($1); }
 | select_statement 
 { $$= new Statement($1); }
-| insert_statement 
+| insert_statement
 { $$= new Statement($1); }
-| delete_statement 
+| delete_statement
 { $$= new Statement($1); }
 ;
 
@@ -120,6 +120,7 @@ SELECT DISTINCT select_statement_rest
 { $$= new Select_statement($3); }
 | SELECT select_statement_rest 
 { $$= new Select_statement($2); }
+
 ;
 
 select_statement_rest:
@@ -276,13 +277,18 @@ int main()
  MainMemory mem;
  Disk disk;
  db_manager dbManager(&mem, &disk);
+ cout<<"main here"<<endl;
  
  while(1)
  {
 	yyparse();
-	root -> printFunc();
-	cout<<"end of print"<<endl;
-	dbManager.process_statement(root);
+	if(root != '\0')
+	    root -> printFunc();
+	else
+	    cout<<"end of print root null"<<endl;
+	
+	string result = dbManager.process_statement(root) == 0? "FAILURE" : "SUCCESS";  
+	cout<<result<<endl;
 	
 	yylex_destroy();
  }

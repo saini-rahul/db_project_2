@@ -2,7 +2,9 @@
 
 Data_type::Data_type(char *tp)
 {
-	this-> tp= tp;
+	//this-> tp= tp;
+	this->tp= new char[40];
+	strcpy(this->tp, tp);
 	cout<<"type "<<this->tp<<"\n";
 }
 
@@ -16,7 +18,8 @@ Value::Value(int int_num)
 Value::Value(char *nm)
 {
 	int_num=-100000;
-	this->nm= nm;
+	this->nm= new char[40];
+	strcpy(this->nm, nm);
 	cout<<"val  "<<nm<<"\n";
 }
 
@@ -42,34 +45,16 @@ Comp_op::Comp_op(char op)
 
 Table_name::Table_name(char *nm)
 {
-	this->nm= nm;
-	cout<<"TABLE  "<<nm<<"\n";
+	cout<<"gete 1";
+	this->nm= new char[40];
+	strcpy(this->nm, nm);
+	cout<<"TABLE  "<<this->nm<<"\n";
 }
 
 Attribute_name::Attribute_name(char *nm)
 {
 	this->nm= new char[40];
-	for(int i=0; nm[i]!= '\0'; i++)
-	{
-		if(!isalnum(nm[i]))
-		{
-			this-> nm[i]= '\0';
-			break;
-			//this->nm[i]= nm[i];
-		}
-
-		if(nm[i]=='F')
-		{
-			if(nm[i+1]!= '\0' && nm[i+1]=='R' && nm[i+2]!= '\0' && nm[i+2]=='O' &&nm[i+3]!= '\0' && nm[i+3]=='M')
-			{
-				this-> nm[i]= '\0';
-				break;
-			}
-		}
-
-		this->nm[i]= nm[i];
-	}
-
+	strcpy(this->nm, nm);
 	cout<<"ATT  "<<this->nm<<"\n";
 
 }
@@ -80,6 +65,7 @@ Column_name::Column_name(Attribute_name *at_nm)
 {
 	tb_nm= '\0';
 	this->at_nm= at_nm;
+	//strcpy(this->at_nm, at_nm);
 	//cout<<at_nm<<"  ";
 
 }
@@ -124,7 +110,8 @@ Term::Term(int int_num)
 Term::Term(char *nm)
 {
 	int_num=-100000;
-	this->nm= nm;
+	this->nm= new char[40];
+	strcpy(this->nm, nm);
 	this-> cl_nm= '\0';
 	cout<<"term1  "<<nm<<"\n";
 }
@@ -204,6 +191,7 @@ Create_statement::Create_statement(Table_name *tb_nm, Attribute_type_list *at_tp
 
 Drop_statement::Drop_statement(Table_name *tb_nm)
 {
+	cout<<"here   "<<endl;
 	this->tb_nm= tb_nm;
 }
 
@@ -316,6 +304,7 @@ Statement::Statement(Create_statement *cr_st)
 }
 Statement::Statement(Drop_statement *dr_st)
 {
+	cout<<"here  222222222222"<<endl;
 	this->cr_st= '\0';
 	this-> sl_st= '\0';
 	this-> is_st= '\0';
@@ -358,7 +347,9 @@ Statement_list::Statement_list(Statement *st, Statement_list *st_ls)
 
 Statement_list::Statement_list(Statement *st)
 {
+	//cout<<"here  1111111111111111"<<endl;
 	this-> st= st;
 	this-> st_ls= '\0';
+	//printFunc();
 }
 

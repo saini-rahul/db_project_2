@@ -22,7 +22,6 @@ class db_manager{
     private:
         MainMemory *mem;
         Disk *disk;
-
         SchemaManager schema_manager;
     
     public:
@@ -32,10 +31,10 @@ class db_manager{
             this->disk= d;
         }
         
-        void process_statement(Statement_list *root);
-        void process_create_statement(Create_statement *cr_st);
+        bool process_statement(Statement_list *root);
+        bool process_create_statement(Create_statement *cr_st);
         void process_attribute_type_list(Attribute_type_list* , vector<string>&, vector<enum FIELD_TYPE>&);
-        void process_drop_statement(Drop_statement *dr_st);
+        bool process_drop_statement(Drop_statement *dr_st);
 };
 
 #endif
