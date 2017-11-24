@@ -47,71 +47,74 @@ extern int yydebug;
   {
     INTEGER = 258,
     NAME = 259,
-    EE = 260,
-    GE = 261,
-    LE = 262,
-    NE = 263,
-    AA = 264,
-    OO = 265,
-    NEWLINE = 266,
-    CREATE = 267,
-    TABLE = 268,
-    WHERE = 269,
-    DELETE = 270,
-    FROM = 271,
-    INTO = 272,
-    INSERT = 273,
-    SELECT = 274,
-    VALUES = 275,
-    DROP = 276,
-    ORDER = 277,
-    BY = 278,
-    INT_L = 279,
-    STR20_L = 280,
-    AND = 281,
-    OR = 282,
-    DISTINCT = 283,
-    NUL = 284
+    LITERAL = 260,
+    EE = 261,
+    GE = 262,
+    LE = 263,
+    NE = 264,
+    AA = 265,
+    OO = 266,
+    NEWLINE = 267,
+    CREATE = 268,
+    TABLE = 269,
+    WHERE = 270,
+    DELETE = 271,
+    FROM = 272,
+    INTO = 273,
+    INSERT = 274,
+    SELECT = 275,
+    VALUES = 276,
+    DROP = 277,
+    ORDER = 278,
+    BY = 279,
+    INT_L = 280,
+    STR20_L = 281,
+    AND = 282,
+    OR = 283,
+    DISTINCT = 284,
+    NUL = 285
   };
 #endif
 /* Tokens.  */
 #define INTEGER 258
 #define NAME 259
-#define EE 260
-#define GE 261
-#define LE 262
-#define NE 263
-#define AA 264
-#define OO 265
-#define NEWLINE 266
-#define CREATE 267
-#define TABLE 268
-#define WHERE 269
-#define DELETE 270
-#define FROM 271
-#define INTO 272
-#define INSERT 273
-#define SELECT 274
-#define VALUES 275
-#define DROP 276
-#define ORDER 277
-#define BY 278
-#define INT_L 279
-#define STR20_L 280
-#define AND 281
-#define OR 282
-#define DISTINCT 283
-#define NUL 284
+#define LITERAL 260
+#define EE 261
+#define GE 262
+#define LE 263
+#define NE 264
+#define AA 265
+#define OO 266
+#define NEWLINE 267
+#define CREATE 268
+#define TABLE 269
+#define WHERE 270
+#define DELETE 271
+#define FROM 272
+#define INTO 273
+#define INSERT 274
+#define SELECT 275
+#define VALUES 276
+#define DROP 277
+#define ORDER 278
+#define BY 279
+#define INT_L 280
+#define STR20_L 281
+#define AND 282
+#define OR 283
+#define DISTINCT 284
+#define NUL 285
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 15 "typ.y" /* yacc.c:1909  */
+#line 13 "typ.y" /* yacc.c:1909  */
 
     int d;
     char *sttr;
+    char *sttr1;
     Statement_list *st_ls;
     Statement *st;
     Create_statement *cr_st;
@@ -141,7 +144,7 @@ union YYSTYPE
     
     
 
-#line 145 "y.tab.h" /* yacc.c:1909  */
+#line 148 "y.tab.h" /* yacc.c:1909  */
 };
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1

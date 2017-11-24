@@ -1,20 +1,8 @@
 #ifndef _db_manager
 #define _db_manager
 
-#include<iterator>
-#include<cstdlib>
-#include<ctime>
-#include<string>
-#include "Block.h"
-#include "Config.h"
-#include "Disk.h"
-#include "Field.h"
-#include "MainMemory.h"
-#include "Relation.h"
-#include "Schema.h"
-#include "SchemaManager.h"
-#include "Tuple.h"
 #include "typ.h"
+#include "block_manager.cpp"
 
 using namespace std;
 
@@ -32,9 +20,17 @@ class db_manager{
         }
         
         bool process_statement(Statement_list *root);
+        
         bool process_create_statement(Create_statement *cr_st);
         void process_attribute_type_list(Attribute_type_list* , vector<string>&, vector<enum FIELD_TYPE>&);
+        
+        bool process_insert_statement(Insert_statement *cr_st);
+        void process_attribute_list(Attribute_list*, vector<string>&);
+        void insertTupleToRelation(Relation* , vector<Tuple>&);
+        
         bool process_drop_statement(Drop_statement *dr_st);
+        
+        bool process_select_statement(Select_statement *sl_st);
 };
 
 #endif

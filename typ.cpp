@@ -11,13 +11,13 @@ Data_type::Data_type(char *tp)
 
 Value::Value(int int_num)
 {
-	nm='\0';
+	this-> nm='\0';
 	this->int_num= int_num;
 	cout<<"value "<<this->int_num<<"\n";
 }
 Value::Value(char *nm)
 {
-	int_num=-100000;
+	int_num= INT_MAX;
 	this->nm= new char[40];
 	strcpy(this->nm, nm);
 	cout<<"val  "<<nm<<"\n";
@@ -25,6 +25,7 @@ Value::Value(char *nm)
 
 Value_list::Value_list(Value *vl)
 {
+	this->vl= vl;
 	vl_ls= '\0';
 }
 Value_list::Value_list(Value *vl, Value_list *vl_ls)
@@ -40,12 +41,12 @@ Value_list::Value_list(Value *vl, Value_list *vl_ls)
 Comp_op::Comp_op(char op)
 {
 	this-> op= op;
-	cout<<"op  "<<op<<"\n";
+	cout<<"op  |"<<op<<"|\n";
 }
 
 Table_name::Table_name(char *nm)
 {
-	cout<<"gete 1";
+	cout<<"gete 1"<<endl;
 	this->nm= new char[40];
 	strcpy(this->nm, nm);
 	cout<<"TABLE  "<<this->nm<<"\n";
@@ -65,9 +66,6 @@ Column_name::Column_name(Attribute_name *at_nm)
 {
 	tb_nm= '\0';
 	this->at_nm= at_nm;
-	//strcpy(this->at_nm, at_nm);
-	//cout<<at_nm<<"  ";
-
 }
 Column_name::Column_name(Table_name *tb_nm, Attribute_name *at_nm )
 {
@@ -104,21 +102,21 @@ Term::Term(int int_num)
 	nm='\0';
 	this->int_num= int_num;
 	this-> cl_nm= '\0';
-	cout<<"term  "<<int_num<<"\n";
+	cout<<"term  |"<<int_num<<"|\n";
 }
 
 Term::Term(char *nm)
 {
-	int_num=-100000;
+	int_num=-INT_MAX;
 	this->nm= new char[40];
 	strcpy(this->nm, nm);
 	this-> cl_nm= '\0';
-	cout<<"term1  "<<nm<<"\n";
+	cout<<"term1  |"<<nm<<"|\n";
 }
 
 Term::Term(Column_name *cl_nm)
 {
-	int_num=-100000;
+	int_num=-INT_MAX;
 	this->nm= '\0';
 	this-> cl_nm= cl_nm;
 	//cout<<nm<<"  ";

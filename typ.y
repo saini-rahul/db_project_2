@@ -1,8 +1,6 @@
 %{
 #include<stdio.h>
 #include "db_manager.h"
-//#include <conio.h>
-//extern "C" int yylex();
 extern int  yyparse();
 extern int yylex_destroy(void);
 
@@ -15,6 +13,7 @@ void yyerror(const char *s);
 %union{
     int d;
     char *sttr;
+    char *sttr1;
     Statement_list *st_ls;
     Statement *st;
     Create_statement *cr_st;
@@ -46,6 +45,7 @@ void yyerror(const char *s);
 
 %token <d> INTEGER
 %token <sttr> NAME
+%token <sttr1> LITERAL
 %token EE GE LE NE AA OO NEWLINE
 %token CREATE TABLE WHERE DELETE FROM INTO INSERT SELECT
 %token VALUES DROP ORDER BY INT_L STR20_L AND OR DISTINCT NUL
@@ -116,19 +116,20 @@ DROP TABLE table_name
 ;
 
 select_statement:
-SELECT DISTINCT select_statement_rest 
+SELECT DISTINCT select_statement_rest
 { $$= new Select_statement($3); }
-| SELECT select_statement_rest 
+| SELECT select_statement_rest
 { $$= new Select_statement($2); }
 
 ;
 
 select_statement_rest:
 select_list FROM table_list 
-{ $$= new Select_statement_rest($1, $3); }
+{ $$= new Select_statement_rest($1, $3); 
+}
 | select_list FROM table_list WHERE search_condition 
 { $$= new Select_statement_rest($1, $3, $5); }
-| select_list FROM table_list WHERE search_condition ORDER BY column_name 
+| select_list FROM table_list WHERE search_condition ORDER BY column_name
 { $$= new Select_statement_rest($1, $3, $5, $8); }
 ;
 
@@ -205,12 +206,15 @@ term
 
 term:
 INTEGER
-{ $$= new Term($1); }
-| column_name
-{ $$= new Term($1); }
-| NUL
-{ $$= new Term("NULL"); }
-;
+{ cout<<"sam"<<endl;
+$$= new Term($1); }
+| NAME
+{ cout<<"sam1111"<<endl;
+$$= new Term($1); }
+| LITERAL
+{ cout<<"sam1111"<<endl;
+$$= new Term($1);
+};
 
 insert_touples:
  VALUES '('value_list')' 
@@ -225,7 +229,7 @@ INTEGER
 { $$= new Value($1); }
 | NUL
 { $$= new Value("NULL"); }
-| NAME 
+| LITERAL
 { $$= new Value($1); }
 ;
 
@@ -246,7 +250,7 @@ comp_op:
 ;
 
 table_name:
-NAME 
+NAME
 { $$= new Table_name($1); }
 ;
 
@@ -257,7 +261,7 @@ $$= new Attribute_name($1); }
 ;
 
 column_name:
-attribute_name
+attribute_name 
 { $$= new Column_name($1); }
 | table_name'.'attribute_name
 { $$= new Column_name($1, $3); }
