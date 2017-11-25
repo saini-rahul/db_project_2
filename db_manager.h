@@ -3,6 +3,8 @@
 
 #include "typ.h"
 #include "block_manager.cpp"
+#include <algorithm>    // std::find
+
 
 using namespace std;
 
@@ -31,8 +33,10 @@ class db_manager{
         bool process_drop_statement(Drop_statement *dr_st);
         
         bool process_select_statement(Select_statement_rest *, char *);
-        bool process_table_list(Table_list *tb_ls, vector<string>& table_names);
+        void process_table_list(Table_list *tb_ls, vector<string>& table_names);
         bool process_search_condition(Search_condition *sr_cn);
+        bool process_select_list(Select_sublist *, vector<string>& , vector<string>& );
+        string process_column_name(Column_name *, vector<string>& );
 
 };
 

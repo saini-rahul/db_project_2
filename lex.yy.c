@@ -1050,34 +1050,35 @@ case 46:
 YY_RULE_SETUP
 #line 68 "typ.l"
 { 
-yylval.sttr=(char *)yytext;
+yylval.sttr = (char *)yytext;
+cout<<"here is "<<yylval.sttr<<endl;
 return NAME; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 72 "typ.l"
+#line 73 "typ.l"
 { yylval.d=atoi(yytext);
          return(INTEGER);
         }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 75 "typ.l"
+#line 76 "typ.l"
 ;
 	YY_BREAK
 case 49:
 /* rule 49 can match eol */
 YY_RULE_SETUP
-#line 76 "typ.l"
+#line 77 "typ.l"
 { 
 return NEWLINE; };  
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 81 "typ.l"
+#line 82 "typ.l"
 ECHO;
 	YY_BREAK
-#line 1081 "lex.yy.c"
+#line 1082 "lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2075,7 +2076,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 81 "typ.l"
+#line 82 "typ.l"
 
 
 

@@ -12,7 +12,9 @@
 #include "Schema.h"
 #include "SchemaManager.h"
 #include "Tuple.h"
-
+#include<climits>
+#include <string>
+using namespace std;
 
 class block_manager
 {
@@ -52,5 +54,103 @@ class block_manager
     }  
   }
   
+  static bool process_select_in_memory(SchemaManager schema_manager, Disk disk, MainMemory& mem, vector<string> table_names , vector<string> select_lists)
+  {
+    if(table_names.size() == 1)
+    {
+        
+        Relation* relation_ptr=schema_manager.getRelation(table_names[0]);
+        if(relation_ptr == '\0')
+        {
+            return false;
+        }
+        
+        cout<<"Tuple based select is here "<<endl;
+        int relation_size = relation_ptr->getNumOfBlocks();
+        cout<<*relation_ptr<<endl;
+        //cout<<"Tuple based select is here "<<relation_size<<"    "<<endl;
+        for(int i = 0; i < relation_size; i++)
+        {
+            Block *block_ptr=mem.getBlock(0);
+            block_ptr->clear(); //clear the block
+            relation_ptr->getBlock(i , 0);
+            vector<Tuple> tp = mem.getTuples(0, 1);
+            
+            for(int i = 0; i< tp.size(); i++)
+            {
+                if(satisfies_condition(tp[i]) == true)
+                {
+                    if(project(schema_manager.getRelation(table_names[0])->getSchema(), tp[i], select_lists) == false)
+                        return false;
+                }
+            }
+            
+        }
+        
+    }
     
+    return true;
+  }
+  
+  static bool satisfies_condition(Tuple tp)
+  {
+      return true;
+  }
+  
+  static bool project(Schema schema, Tuple tp, vector<string>& select_lists)
+  {
+      vector<string> values;
+      
+      for(int i = 0; i < select_lists.size(); i++)
+      {
+          string fields = select_lists[i].substr(select_lists[i].find(".")+1, select_lists[i].size()-1);
+          //cout<< fields <<" is the fl nm"<<endl;
+          if(fields[0] == '*')
+          {
+              tp.printTuple();
+              return true;
+          }
+          if(schema.fieldNameExists(fields) == false)
+            return false;
+          
+          enum FIELD_TYPE typ = schema.getFieldType(fields);
+          string cc= "";
+          
+          if(typ == INT)
+          {
+              //std::cout << "INTTTTTTTTTTTTTTTTTTTTTTT     " << tp.getField(fields).integer<<std::endl;
+            cc = to_string(tp.getField(fields).integer);
+          }
+          else
+            cc= *(tp.getField(fields).str);
+        
+          values.push_back(cc);
+      }
+
+      for(int i = 0; i < values.size(); i++)
+      {
+          cout<<values[i]<<"\t";
+      }
+
+      return true;
+  }
+  
+  static bool tuple_based_select(SchemaManager schema_manager, Relation* relation_ptr, MainMemory mem, int relation_size, vector<string> table_names , vector<string> select_lists)
+  {
+      cout<<"One pass here "<<endl;
+      int rl_sz = relation_ptr->getNumOfBlocks();
+      //
+      for(int i = 0; i < rl_sz; i++)
+      {
+          relation_ptr->getBlock(i, 0);
+      }
+      
+      return true;
+  }
+  
+  static bool two_pass_process(SchemaManager schema_manager, Relation* relation_ptr, MainMemory mem, int relation_size, vector<string> table_names , vector<string> select_lists)
+  {
+      cout<<"Two pass here "<<endl;
+      return true;
+  }
 };

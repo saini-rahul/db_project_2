@@ -66,7 +66,8 @@ return LITERAL;
 }
 
 [a-zA-Z][a-zA-Z0-9]* { 
-yylval.sttr=(char *)yytext;
+yylval.sttr = (char *)yytext;
+cout<<"here is "<<yylval.sttr<<endl;
 return NAME; }
 
 [0-9]+ { yylval.d=atoi(yytext);

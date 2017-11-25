@@ -162,19 +162,17 @@ public:
 };
 
 class Table_list{
-
+public:
 	Table_name *tb_nm;
 	Table_list *tb_ls;
-public:
 	Table_list(Table_name *tb_nm);
 	Table_list(Table_name *tb_nm, Table_list *tb_ls);	
 };
 
 class Select_sublist:public Node{
-
+public:
 	Column_name *cl_nm;
 	Select_sublist *sl_sls;
-public:
 	Select_sublist(Column_name *cl_nm);
 	Select_sublist(Column_name *cl_nm, Select_sublist *sl_sls);	
 };
