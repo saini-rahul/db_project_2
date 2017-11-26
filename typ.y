@@ -251,13 +251,17 @@ comp_op:
 
 table_name:
 NAME
-{ $$= new Table_name($1); }
+{ $$= new Table_name($1); 
+//cout<<"This is here |"<<$1<<"|"<<endl;
+}
 ;
 
 attribute_name:
 NAME 
 { 
-$$= new Attribute_name($1); }
+$$= new Attribute_name($1); 
+//cout<<"Attttttt name is "<<$1<<endl;
+}
 ;
 
 column_name:

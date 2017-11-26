@@ -528,7 +528,7 @@ static const yytype_uint16 yyrline[] =
      146,   151,   153,   159,   161,   166,   171,   173,   178,   180,
      185,   187,   192,   197,   199,   201,   203,   208,   211,   214,
      220,   222,   228,   230,   232,   237,   239,   244,   246,   248,
-     253,   258,   264,   266,   271,   273
+     253,   260,   268,   270,   275,   277
 };
 #endif
 
@@ -1664,43 +1664,47 @@ return 1;
 
   case 50:
 #line 254 "typ.y" /* yacc.c:1646  */
-    { (yyval.tb_nm)= new Table_name((yyvsp[0].sttr)); }
-#line 1669 "y.tab.c" /* yacc.c:1646  */
+    { (yyval.tb_nm)= new Table_name((yyvsp[0].sttr)); 
+//cout<<"This is here |"<<$1<<"|"<<endl;
+}
+#line 1671 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 51:
-#line 259 "typ.y" /* yacc.c:1646  */
+#line 261 "typ.y" /* yacc.c:1646  */
     { 
-(yyval.att_nm)= new Attribute_name((yyvsp[0].sttr)); }
-#line 1676 "y.tab.c" /* yacc.c:1646  */
+(yyval.att_nm)= new Attribute_name((yyvsp[0].sttr)); 
+//cout<<"Attttttt name is "<<$1<<endl;
+}
+#line 1680 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 52:
-#line 265 "typ.y" /* yacc.c:1646  */
+#line 269 "typ.y" /* yacc.c:1646  */
     { (yyval.cl_nm)= new Column_name((yyvsp[0].att_nm)); }
-#line 1682 "y.tab.c" /* yacc.c:1646  */
+#line 1686 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 53:
-#line 267 "typ.y" /* yacc.c:1646  */
+#line 271 "typ.y" /* yacc.c:1646  */
     { (yyval.cl_nm)= new Column_name((yyvsp[-2].tb_nm), (yyvsp[0].att_nm)); }
-#line 1688 "y.tab.c" /* yacc.c:1646  */
+#line 1692 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 54:
-#line 272 "typ.y" /* yacc.c:1646  */
+#line 276 "typ.y" /* yacc.c:1646  */
     { (yyval.dt_tp)= new Data_type("INT"); }
-#line 1694 "y.tab.c" /* yacc.c:1646  */
+#line 1698 "y.tab.c" /* yacc.c:1646  */
     break;
 
   case 55:
-#line 274 "typ.y" /* yacc.c:1646  */
+#line 278 "typ.y" /* yacc.c:1646  */
     { (yyval.dt_tp)= new Data_type("STR20"); }
-#line 1700 "y.tab.c" /* yacc.c:1646  */
+#line 1704 "y.tab.c" /* yacc.c:1646  */
     break;
 
 
-#line 1704 "y.tab.c" /* yacc.c:1646  */
+#line 1708 "y.tab.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -1928,7 +1932,7 @@ yyreturn:
 #endif
   return yyresult;
 }
-#line 278 "typ.y" /* yacc.c:1906  */
+#line 282 "typ.y" /* yacc.c:1906  */
 
 int main()
 {

@@ -3,6 +3,8 @@
 
 #include "typ.h"
 #include "block_manager.cpp"
+#include <algorithm>    // std::find
+
 
 using namespace std;
 
@@ -29,20 +31,18 @@ class db_manager{
         void insertTupleToRelation(Relation* , vector<Tuple>&);
         
         bool process_drop_statement(Drop_statement *dr_st);
-        
-        bool process_select_statement(Select_statement_rest*, char *);
+
+        bool process_select_statement(Select_statement_rest *, char *);
         void process_table_list(Table_list *tb_ls, vector<string>& table_names);
-        void process_search_condition(Search_condition*);
+        bool process_search_condition(Search_condition *sr_cn);
         void process_boolean_term(Boolean_term*);
         void process_boolean_factor(Boolean_factor*);
         void process_expression(Expression*);
         char process_comp_op(Comp_op*);
         void process_term(Term*);
 
-
-
-
-
+        bool process_select_list(Select_sublist *, vector<string>& , vector<string>& );
+        string process_column_name(Column_name *, vector<string>& );
 
 };
 

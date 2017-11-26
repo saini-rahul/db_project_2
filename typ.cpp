@@ -46,17 +46,59 @@ Comp_op::Comp_op(char op)
 
 Table_name::Table_name(char *nm)
 {
-	cout<<"gete 1"<<endl;
+	cout<<"gete 1"<<nm<<endl;
 	this->nm= new char[40];
-	strcpy(this->nm, nm);
+	int i=0;
+	for(i=0; nm[i]!= '\0'; i++)
+	{
+		if(!isalnum(nm[i]))
+		{
+			//this-> nm[i]= '\0';
+			break;
+			//this->nm[i]= nm[i];
+		}
+		this-> nm[i]=nm[i];
+	}
+	this-> nm[i] = 0;
+	//strcpy(this->nm, nm);
 	cout<<"TABLE  "<<this->nm<<"\n";
 }
 
 Attribute_name::Attribute_name(char *nm)
 {
-	this->nm= new char[40];
+	/*this->nm= new char[40];
+		
 	strcpy(this->nm, nm);
+	cout<<"ATT  "<<this->nm<<"\n";*/
+	this->nm= new char[40];
+	int i = 0;
+	for(i=0; nm[i]!= '\0'; i++)
+	{
+		if(!isalnum(nm[i]))
+		{
+			//this-> nm[i]= '\0';
+			break;
+		}
+		if(nm[i]==' ')
+		{
+			break;
+		}
+
+		if(nm[i]=='F')
+		{
+			if(nm[i+1]!= '\0' && nm[i+1]=='R' && nm[i+2]!= '\0' && nm[i+2]=='O' &&nm[i+3]!= '\0' && nm[i+3]=='M')
+			{
+				//this-> nm[i]= '\0';
+				break;
+			}
+		}
+
+		this->nm[i]= nm[i];
+	}
+	this->nm[i] = '\0';
+	cout<<"ATT  NMMMMMMM    "<<nm<<"\n";
 	cout<<"ATT  "<<this->nm<<"\n";
+
 
 }
 
@@ -298,7 +340,7 @@ Delete_statement::Delete_statement(Table_name *tb_nm)
 }
 Delete_statement::Delete_statement(Table_name *tb_nm, Search_condition *sr_cn)
 {
-	this-> tb_nm;
+	this-> tb_nm = tb_nm;
 	this-> sr_cn= sr_cn;
 }
 

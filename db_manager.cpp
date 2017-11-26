@@ -23,33 +23,88 @@ bool db_manager::process_statement(Statement_list *root)
 bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
 {
     vector<string> table_names;
+    vector<string> select_lists;
     process_table_list(sl_rs->tb_ls, table_names);
-    process_search_condition(sl_rs->sr_cn);
     
-    /*cout << "Creating table " << relation_name << endl;  
-    Relation* relation_ptr=schema_manager.getRelation(relation_name);
-    if(relation_ptr == '\0')
+    if(sl_rs->sl_ls->c == '\0')
     {
-        return false;
+        bool check = process_select_list(sl_rs->sl_ls->sl_sb_ls, select_lists, table_names);
+        std::cout << "ssssssssssssssssssssssssssssssssssssssss" << std::endl;
+        if(check == false)
+            return false;
+    }
+    else
+    {
+        select_lists.push_back(".*");
+        cout<<"It is *"<<endl;
     }
     
-    cout << "The table has name " << relation_ptr->getRelationName() << endl;
-    cout << "The table has schema:" << endl;
-    cout << relation_ptr->getSchema() << endl;
-    cout << "The table currently have " << relation_ptr->getNumOfBlocks() << " blocks" << endl;
-    cout << "The table currently have " << relation_ptr->getNumOfTuples() << " tuples" << endl << endl;
-    std::cout << schema_manager << std::endl;*/
+    process_search_condition(sl_rs->sr_cn);
     
     if(d == '\0')
     {
         std::cout << "Not distinct" << std::endl;
     }
+    return block_manager::process_select_in_memory(schema_manager, *disk, *mem, table_names , select_lists);
+    
+    //return true;
+}
+
+string db_manager::process_column_name(Column_name *cl_nm, vector<string>& table_names)
+{
+    string att_name(cl_nm->at_nm->nm);
+    
+    
+    if(cl_nm->tb_nm != '\0')
+    {
+        string table_name(cl_nm->tb_nm->nm);
+        cout<<"table name is "<<table_name<<endl;
+        
+        if(std::find(table_names.begin(), table_names.end(), table_name) != table_names.end()== false)
+            return "";
+            
+        att_name = table_name + "." + att_name ;
+    }
+    else
+    {
+        att_name = "." + att_name ;
+    }
+    
+    return att_name;
+}
+
+bool db_manager::process_select_list(Select_sublist *sl_sb_lst, vector<string>& select_lists, vector<string>& table_names)
+{
+    
+    string att_name = process_column_name(sl_sb_lst->cl_nm, table_names);
+    if(att_name == "")
+    {
+        return false;
+    }
+    select_lists.push_back(att_name);
+    cout<<"Name of the relation 111111111111"<<att_name<<endl;
+    
+    if(sl_sb_lst -> sl_sls != '\0')
+    {
+        process_select_list(sl_sb_lst -> sl_sls, select_lists, table_names);
+    }
+    
     return true;
 }
 
+<<<<<<< HEAD
 void db_manager::process_table_list(Table_list *tb_ls, vector<string>& table_names)
+=======
+void db_manager::process_table_list(Table_list *tb_lst, vector<string>& table_names)
+>>>>>>> c102ccaafb4e91d99aa90a21d70181c3abf19625
 {
-    return 1;
+    string name(tb_lst->tb_nm->nm);
+    cout<<"Name of the relation "<<name<<endl;
+    table_names.push_back(name);
+    
+    if(tb_lst->tb_ls != '\0')
+        process_table_list(tb_lst->tb_ls , table_names);
+    
 }
 
 
