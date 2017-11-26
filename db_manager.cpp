@@ -47,15 +47,74 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
     return true;
 }
 
-bool db_manager::process_table_list(Table_list *tb_ls, vector<string>& table_names)
+void db_manager::process_table_list(Table_list *tb_ls, vector<string>& table_names)
 {
     return 1;
 }
 
-bool db_manager::process_search_condition(Search_condition *sr_cn)
+
+void db_manager::process_search_condition(Search_condition *sr)
 {
-    return 1;
+    process_boolean_term(sr->bl_tm); //read the boolean term recursively 
+    if(sr_cn != '\0') //OR search-condition
+    {
+        //sr_cn->sr_cn; 
+        process_search_condition(sr_cn->sr_cn);
+    }
+    
 }
+
+void db_manager::process_boolean_term(Boolean_term *bl_tm)
+{
+    //boolean_factor  | boolean-factor AND boolean-term
+    process_boolean_factor(bl_tm->bl_fc);
+    if(bl_tr != '\0')
+    {
+        process_boolean_term(bl_tm->bl_tr);
+        
+    }
+}
+
+void db_manager::process_boolean_factor(Boolean_factor *bl_fc)
+{
+    //expression comp-op expression
+    process_expression(bl_fc->ep1);
+    process_comp_op(bl_fc->cm_op);
+    process_expression(bl_fc->ep2);
+}
+
+void db_manager::process_expression(Expression *ep)
+{
+    if(ep-> op == '\0') //single term
+    {
+        process_term(ep->tr1);
+    }else
+    {
+            process_term(ep->tr1);
+            process_term(ep->tr2);
+            
+    }
+}
+
+void db_manager::process_term(Term *t)
+{
+    if(t->cl_nm != '\0')
+    {
+        string column_name = process_column_name(t->cl_nm);
+    }else if (t->nm != '\0')
+    {
+        string literal_name(t->nm);
+    }else
+    {
+        int term_integer = t->int_num;
+    }
+}
+char db_manager::process_comp_op(Comp_op *cm_op)
+{
+    return cm_op->op;
+}
+
+
 
 bool db_manager::process_insert_statement(Insert_statement *is_st)
 {
