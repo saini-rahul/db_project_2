@@ -14,6 +14,8 @@
 #include "Tuple.h"
 #include<climits>
 #include <string>
+#include <utility>
+
 using namespace std;
 
 class block_manager
@@ -56,29 +58,35 @@ class block_manager
   
   static bool process_select_in_memory(SchemaManager schema_manager, Disk disk, MainMemory& mem, vector<string> table_names , vector<string> select_lists)
   {
-    if(table_names.size() == 1)
+    if(table_names.size() == 1) //Only 1 table involved in the query
     {
         
         Relation* relation_ptr=schema_manager.getRelation(table_names[0]);
-        if(relation_ptr == '\0')
+        if(relation_ptr == '\0') //no such table
         {
-            return false;
+            return false; 
         }
         
-        cout<<"Tuple based select is here "<<endl;
+        cout<<"SELECT-STATEMENT: Bring Blocks from Relation: BEGIN "<<endl;
         int relation_size = relation_ptr->getNumOfBlocks();
+        
+        
         cout<<*relation_ptr<<endl;
-        //cout<<"Tuple based select is here "<<relation_size<<"    "<<endl;
+        
+    
+        cout<<"Tuple based select is here "<<relation_size<<"    "<<endl;
+        
         for(int i = 0; i < relation_size; i++)
         {
-            Block *block_ptr=mem.getBlock(0);
+            Block *block_ptr = mem.getBlock(0); //Grab 0th main memory block
             block_ptr->clear(); //clear the block
             relation_ptr->getBlock(i , 0);
+            
             vector<Tuple> tp = mem.getTuples(0, 1);
             
             for(int i = 0; i< tp.size(); i++)
             {
-                if(satisfies_condition(tp[i]) == true)
+                if(satisfies_condition(tp[i]) == true) //Check the tuple for where clause
                 {
                     if(project(schema_manager.getRelation(table_names[0])->getSchema(), tp[i], select_lists) == false)
                         return false;

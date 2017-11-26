@@ -24,12 +24,13 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
 {
     vector<string> table_names;
     vector<string> select_lists;
-    process_table_list(sl_rs->tb_ls, table_names);
+    process_table_list(sl_rs->tb_ls, table_names); //get the vector of table names
     
-    if(sl_rs->sl_ls->c == '\0')
+    if(sl_rs->sl_ls->c == '\0') // If the select list contains a select sublist
     {
+        /*  */
         bool check = process_select_list(sl_rs->sl_ls->sl_sb_ls, select_lists, table_names);
-        std::cout << "ssssssssssssssssssssssssssssssssssssssss" << std::endl;
+        // std::cout << "ssssssssssssssssssssssssssssssssssssssss" << std::endl;
         if(check == false)
             return false;
     }
@@ -39,17 +40,45 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
         cout<<"It is *"<<endl;
     }
     
-    process_search_condition(sl_rs->sr_cn);
+    /* Convert the search condition to a postfix vector of strings, if it exists */
+    if(sl_rs->sr_cn != '\0'){
+        vector< pair<string,string> > postfixExpression; 
+        /* OR OPERATOR 
+           AND OPERATOR 
+           < OPERATOR
+           > OPERATOR
+           = OPERATOR
+           + OPERATOR
+           - OPERATOR
+           * OPERATOR
+           
+           OPERANDS
+           C COLUMN-NAME
+           L LITERAL
+           I INTEGER
+           
+           
+        */
+        
+        if (!process_search_condition(sl_rs->sr_cn, postfixExpression, table_names)){ 
+            cout<<"Process Search Condition Failed."<<endl;
+            return false;
+        }
+        else{
+                cout<<"We have a valid postfixExpression"<<endl;
+            }
+    }
     
     if(d == '\0')
     {
-        std::cout << "Not distinct" << std::endl;
+        std::cout << "DISTINCT: False" << std::endl;
     }
     return block_manager::process_select_in_memory(schema_manager, *disk, *mem, table_names , select_lists);
     
     //return true;
 }
 
+/* returns empty string in error condition */
 string db_manager::process_column_name(Column_name *cl_nm, vector<string>& table_names)
 {
     string att_name(cl_nm->at_nm->nm);
@@ -60,7 +89,8 @@ string db_manager::process_column_name(Column_name *cl_nm, vector<string>& table
         string table_name(cl_nm->tb_nm->nm);
         cout<<"table name is "<<table_name<<endl;
         
-        if(std::find(table_names.begin(), table_names.end(), table_name) != table_names.end()== false)
+        /* If the table name used in column names do not match the table names in the table-list, return false */
+        if(std::find(table_names.begin(), table_names.end(), table_name) != table_names.end()== false) 
             return "";
             
         att_name = table_name + "." + att_name ;
@@ -73,6 +103,9 @@ string db_manager::process_column_name(Column_name *cl_nm, vector<string>& table
     return att_name;
 }
 
+/* Recursively evaluate select list, and push the required columns into a vector, select_lists 
+    Returns false if the table name used to descope column names do not match the table names in the table-list
+*/
 bool db_manager::process_select_list(Select_sublist *sl_sb_lst, vector<string>& select_lists, vector<string>& table_names)
 {
     
@@ -82,7 +115,7 @@ bool db_manager::process_select_list(Select_sublist *sl_sb_lst, vector<string>& 
         return false;
     }
     select_lists.push_back(att_name);
-    cout<<"Name of the relation 111111111111"<<att_name<<endl;
+    cout<<"SELECT-LIST: Name of the column to be projected: "<<att_name<<endl;
     
     if(sl_sb_lst -> sl_sls != '\0')
     {
@@ -92,14 +125,12 @@ bool db_manager::process_select_list(Select_sublist *sl_sb_lst, vector<string>& 
     return true;
 }
 
-<<<<<<< HEAD
-void db_manager::process_table_list(Table_list *tb_ls, vector<string>& table_names)
-=======
+/* Recursively evaluate the table names, and keep pushing them in the vector table_names */
+
 void db_manager::process_table_list(Table_list *tb_lst, vector<string>& table_names)
->>>>>>> c102ccaafb4e91d99aa90a21d70181c3abf19625
 {
     string name(tb_lst->tb_nm->nm);
-    cout<<"Name of the relation "<<name<<endl;
+    cout<<"TABLE-LIST: Name of the table: "<<name<<endl;
     table_names.push_back(name);
     
     if(tb_lst->tb_ls != '\0')
@@ -107,66 +138,108 @@ void db_manager::process_table_list(Table_list *tb_lst, vector<string>& table_na
     
 }
 
-
-void db_manager::process_search_condition(Search_condition *sr)
+/* This will store the entire where clause in a post fix notation */
+bool db_manager::process_search_condition(Search_condition *sr, vector<pair<string,string>>& postfixExpression,  vector<string>& table_names)
 {
-    process_boolean_term(sr->bl_tm); //read the boolean term recursively 
-    if(sr_cn != '\0') //OR search-condition
+    if( !process_boolean_term(sr->bl_tm, postfixExpression, table_names)) //read the boolean term recursively
+        return false;
+    
+    if(sr->sr_cn != '\0') //OR exists 
     {
         //sr_cn->sr_cn; 
-        process_search_condition(sr_cn->sr_cn);
+        if ( !process_search_condition(sr->sr_cn, postfixExpression, table_names))
+            return false;
+        
+        postfixExpression.push_back(make_pair(string("OR"), string("OPERATOR")));
     }
+    return true;
     
 }
 
-void db_manager::process_boolean_term(Boolean_term *bl_tm)
+bool db_manager::process_boolean_term(Boolean_term *bl_tm, vector<pair<string,string>>& postfixExpression, vector<string>& table_names)
 {
     //boolean_factor  | boolean-factor AND boolean-term
-    process_boolean_factor(bl_tm->bl_fc);
-    if(bl_tr != '\0')
-    {
-        process_boolean_term(bl_tm->bl_tr);
+    if (!process_boolean_factor(bl_tm->bl_fc, postfixExpression, table_names))
+        return false;
         
+    if(bl_tm->bl_tr != '\0')
+    {
+        if (!process_boolean_term(bl_tm->bl_tr, postfixExpression, table_names))
+            return false;
+            
+        postfixExpression.push_back(make_pair(string("AND"), string("OPERATOR")));
     }
+    return true;
 }
 
-void db_manager::process_boolean_factor(Boolean_factor *bl_fc)
+bool db_manager::process_boolean_factor(Boolean_factor *bl_fc, vector<pair<string,string>>& postfixExpression, vector<string>& table_names)
 {
     //expression comp-op expression
-    process_expression(bl_fc->ep1);
-    process_comp_op(bl_fc->cm_op);
-    process_expression(bl_fc->ep2);
+    if (!process_expression(bl_fc->ep1, postfixExpression, table_names))
+        return false;
+    if (!process_expression(bl_fc->ep2, postfixExpression, table_names))
+        return false;
+    
+    if (!process_comp_op(bl_fc->cm_op, postfixExpression))
+        return false;
+        
+    return true;
+
 }
 
-void db_manager::process_expression(Expression *ep)
+bool db_manager::process_expression(Expression *ep, vector<pair<string,string>>& postfixExpression, vector<string>& table_names)
 {
     if(ep-> op == '\0') //single term
     {
-        process_term(ep->tr1);
+        if(!process_term(ep->tr1, postfixExpression,table_names))
+            return false;
     }else
     {
-            process_term(ep->tr1);
-            process_term(ep->tr2);
+            //operand is present in expression
+            if(!process_term(ep->tr1,postfixExpression,table_names ))
+                return false;
+                
+            if (!process_term(ep->tr2,postfixExpression,table_names))
+                return false;
+            
+            string v_operator (1,ep->op);
+            postfixExpression.push_back(make_pair(v_operator, string("OPERATOR")));
+
             
     }
+    return true;
 }
 
-void db_manager::process_term(Term *t)
+bool db_manager::process_term(Term *t, vector<pair<string,string>>& postfixExpression, vector<string>& table_names)
 {
     if(t->cl_nm != '\0')
     {
-        string column_name = process_column_name(t->cl_nm);
+        string column_name = process_column_name(t->cl_nm, table_names);
+        if (column_name == "") return false;
+        postfixExpression.push_back(make_pair(column_name , string("COLUMN-NAME")));
+
     }else if (t->nm != '\0')
     {
         string literal_name(t->nm);
+        postfixExpression.push_back(make_pair(literal_name , string("LITERAL")));
+        
     }else
     {
         int term_integer = t->int_num;
+        string v_int = to_string(term_integer);
+        postfixExpression.push_back(make_pair(v_int, string("INTEGER")));
+
     }
+    return true;
 }
-char db_manager::process_comp_op(Comp_op *cm_op)
+
+bool db_manager::process_comp_op(Comp_op *cm_op, vector<pair<string,string>>& postfixExpression)
 {
-    return cm_op->op;
+    char c =  cm_op->op;
+    if (c!= '+' && c!= '-' && c!= '*') 
+        return false;
+    postfixExpression.push_back(make_pair(string(1, c), string("OPERATOR")));
+    return true;
 }
 
 
