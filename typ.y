@@ -208,7 +208,7 @@ term:
 INTEGER
 { cout<<"sam"<<endl;
 $$= new Term($1); }
-| NAME
+| column_name
 { cout<<"sam1111"<<endl;
 $$= new Term($1); }
 | LITERAL
