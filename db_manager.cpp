@@ -24,6 +24,8 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
 {
     vector<string> table_names;
     vector<string> select_lists;
+    vector< pair<string,string> > postfixExpression; 
+
     process_table_list(sl_rs->tb_ls, table_names); //get the vector of table names
     
     if(sl_rs->sl_ls->c == '\0') // If the select list contains a select sublist
@@ -42,7 +44,6 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
     
     /* Convert the search condition to a postfix vector of strings, if it exists */
     if(sl_rs->sr_cn != '\0'){
-        vector< pair<string,string> > postfixExpression; 
         /* OR OPERATOR 
            AND OPERATOR 
            < OPERATOR
@@ -65,7 +66,11 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
             return false;
         }
         else{
-                cout<<"We have a valid postfixExpression"<<endl;
+                cout<<"We have a valid postfixExpression. Printing the expression: "<<endl;
+                for(int i =0; i<postfixExpression.size(); i++){
+                    cout<<postfixExpression[i].first<<", "<<postfixExpression[i].second<<" || ";
+                }
+                cout<<endl;
             }
     }
     
@@ -73,7 +78,7 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
     {
         std::cout << "DISTINCT: False" << std::endl;
     }
-    return block_manager::process_select_in_memory(schema_manager, *disk, *mem, table_names , select_lists);
+    return block_manager::process_select_in_memory(schema_manager, *disk, *mem, table_names , select_lists, postfixExpression);
     
     //return true;
 }
@@ -202,7 +207,10 @@ bool db_manager::process_expression(Expression *ep, vector<pair<string,string>>&
             if (!process_term(ep->tr2,postfixExpression,table_names))
                 return false;
             
-            string v_operator (1,ep->op);
+            char c = ep->op;
+            if (c!= '+' && c!= '-' && c!= '*') 
+                return false;
+            string v_operator (1,c);
             postfixExpression.push_back(make_pair(v_operator, string("OPERATOR")));
 
             
@@ -236,7 +244,7 @@ bool db_manager::process_term(Term *t, vector<pair<string,string>>& postfixExpre
 bool db_manager::process_comp_op(Comp_op *cm_op, vector<pair<string,string>>& postfixExpression)
 {
     char c =  cm_op->op;
-    if (c!= '+' && c!= '-' && c!= '*') 
+    if (c!= '>' && c!= '<' && c!= '=') 
         return false;
     postfixExpression.push_back(make_pair(string(1, c), string("OPERATOR")));
     return true;
