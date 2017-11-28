@@ -15,21 +15,18 @@
 #include<climits>
 #include <string>
 #include <algorithm>
+#include <utility>
+#include<stack>
+
 using namespace std;
 
 struct less_than_key
 {
     string field_name;
     string filed_type;
-    /*MainMemory *mem;
-    Disk *disk;
-    SchemaManager *schema_manager;*/
-    
+
     less_than_key(string field_name, string filed_type) 
     {
-        //this->mem = mem;
-        //this->disk = disk;
-        //this->schema_manager = schema_manager;
         this->field_name = field_name; 
         this->filed_type = filed_type;
     }
@@ -102,29 +99,28 @@ class block_manager
     }  
   }
   
-  
-  bool process_select_in_memory(vector<string>& table_names , vector<string>& select_lists, string order_by_att)
+  bool process_select_in_memory(vector<string>& table_names , vector<string>& select_lists, string order_by_att, vector<pair<string,string>>& postfixExpression)
   {
-    if(table_names.size() == 1)
+    if(table_names.size() == 1) //Only 1 table involved in the query
     {
-        Relation* relation_ptr=schema_manager->getRelation(table_names[0]);
-        if(relation_ptr == '\0')
+        Relation* relation_ptr=schema_manager.getRelation(table_names[0]);
+        if(relation_ptr == '\0') //no such table
         {
-            return false;
+            return false; 
         }
         
-        cout<<"Tuple based select is here "<<endl;
+        cout<<"SELECT-STATEMENT: Bring Blocks from Relation: BEGIN "<<endl;
         int relation_size = relation_ptr->getNumOfBlocks();
         int mem_size = mem->getMemorySize();
         bool res;
         
         if(mem_size >= relation_size)
         {
-            res = one_pass_select_in_memory(relation_ptr, table_names, select_lists, order_by_att);
+            res = one_pass_select_in_memory(relation_ptr, table_names, select_lists, order_by_att, postfixExpression);
         }
         else
         {
-            res = two_pass_select_in_memory(relation_ptr, table_names, select_lists, order_by_att);
+            res = two_pass_select_in_memory(relation_ptr, table_names, select_lists, order_by_att, postfixExpression);
         }
         
         if(res == false)
@@ -136,7 +132,7 @@ class block_manager
     return true;
   }
   
-  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att)
+  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression)
   {
       cout<<"One pass here "<<endl;
       int relation_size = relation_ptr->getNumOfBlocks();
@@ -172,7 +168,7 @@ class block_manager
       
       for(int i = 0; i< tp.size(); i++)
       {
-          if(satisfies_condition(tp[i]) == true)
+          if(satisfies_condition(tp[i], postfixExpression) == true)
           {
               if(project( tp[i], table_names, select_lists) == false)
                 return false;
@@ -182,21 +178,35 @@ class block_manager
       return true;
   }
   
-  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att)
+  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression)
   {
       cout<<"Two pass here "<<endl;
       int mem_size = mem->getMemorySize();
       int relation_size = relation_ptr->getNumOfBlocks();
       for(int i = 0; i < relation_size; i++)
-        {
+      {
             //Block *block_ptr=mem->getBlock(0);
             //block_ptr->clear(); //clear the block
             relation_ptr->getBlock(i , 0);
             vector<Tuple> tp = mem->getTuples(0, 1);
+        
+        
+            cout<<*relation_ptr<<endl;
+        
+    
+        cout<<"Tuple based select is here "<<relation_size<<"    "<<endl;
+        
+        for(int i = 0; i < relation_size; i++)
+        {
+            Block *block_ptr = mem.getBlock(0); //Grab 0th main memory block
+            block_ptr->clear(); //clear the block
+            relation_ptr->getBlock(i , 0);
+            
+            vector<Tuple> tp = mem.getTuples(0, 1);
             
             for(int i = 0; i< tp.size(); i++)
             {
-                if(satisfies_condition(tp[i]) == true)
+                if(satisfies_condition(tp[i], postfixExpression) == true) //Check the tuple for where clause
                 {
                     if(project(tp[i], table_names,select_lists) == false)
                         return false;
@@ -208,10 +218,113 @@ class block_manager
       return true;
   }
   
-  bool satisfies_condition(Tuple tp)
+
+static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1, pair<string,string> p2, stack<pair<string,string>>& S )
+{
+    int val1, val2;
+    string s,t;
+    size_t found;
+    Schema tuple_schema = tuple.getSchema();
+
+    //p2<p1 return is a TRUTH VALUE
+    if (p2.second == "LITERAL" || p1.second == "LITERAL")
+        return false;
+                                
+    if(p1.second == "COLUMN-NAME")
+    {
+         s = p1.first;
+         found = s.find('.');
+        //extract the column name 
+         t = s.substr(found+1);
+                                
+        if (tuple_schema.getFieldType(t) == INT) 
+            val1 = tuple.getField(t).integer;
+        else
+            return false;
+                                    //cout << tuple.getField(t).str << "\t";
+  
+    }else val1 = stoi(p1.first);
+                            
+    if(p2.second == "COLUMN-NAME")
+    {
+        s = p2.first;
+        found = s.find('.');
+        //extract the column name 
+        t = s.substr(found+1);
+                                
+        if (tuple_schema.getFieldType(t) == INT) 
+          val2 = tuple.getField(t).integer;
+        else
+            return false;
+                                    //cout << tuple.getField(t).str << "\t";
+  
+    }else val2 = stoi(p2.first);
+                            
+    //we have v1 and v2
+    //we will calculate the truth value and push it back to stack
+    int truthVal;
+    if (op == "<")
+        truthVal = (val2 < val1)?1:0;
+    if (op == ">")
+        truthVal = (val2 > val1)?1:0;
+    if (op == "=")
+        truthVal = (val2 == val1)?1:0;
+    if (op == "+")
+        truthVal = (val2 + val1);
+    if (op == "-")
+        truthVal = (val2 - val1);
+    if (op == "*")
+        truthVal = (val2 * val1);
+    
+        
+    S.push(make_pair(to_string(truthVal), "OP-VALUE"));
+    return true;
+  }
+  
+  static bool satisfies_condition(Tuple tp, vector<pair<string,string>>& postfixExpression)
   {
+      if(postfixExpression.size() == 0) return true; //if there is no where clause, all tuples satisfy
+      stack<pair<string,string>> S;
+    //   int fail_flag = 0;
+      //evaluate postfix expression 
+      for(int i =0; i<postfixExpression.size(); i++)
+      {
+                    if (postfixExpression[i].second != "OPERATOR") //postfixExpression[i].first
+                    {
+                        //this is an operand just push it in stack.
+                        S.push(postfixExpression[i]);
+                    }else
+                    {
+                        //this is a operator. Pop two guys out of stack, and push back the result onto stack
+                        pair<string,string> p1 = S.top();
+                        S.pop();
+                        pair<string,string> p2 = S.top();
+                        S.pop();
+                        
+                        // if ( postfixExpression[i].first ==  "OR")
+                        // {
+                        //     //p1 and p2 have to be truth values and if either is 1 we return a truth value of 1
+                        // }else if (postfixExpression[i].first ==  "AND") 
+                        // {
+                            
+                        // }else 
+                        if (postfixExpression[i].first ==  "<" || postfixExpression[i].first ==  ">" || postfixExpression[i].first ==  "=" || postfixExpression[i].first ==  "+" ||postfixExpression[i].first ==  "-"||postfixExpression[i].first ==  "*" )
+                        {
+                            bool flag = processTupleOperator(tp,postfixExpression[i].first,p1, p2,S );
+                            if (flag == false)
+                                return false;
+                        } 
+                    }
+                    
+      }
       
-      return true;
+      pair<string,string> ret = S.top();
+      S.pop();
+      
+      if(ret.first == "1")
+        return 1;
+       else return 0;
+     
   }
   
   bool project(Tuple tp, vector<string>& table_names, vector<string>& select_lists)

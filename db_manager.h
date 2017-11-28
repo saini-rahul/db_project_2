@@ -32,10 +32,17 @@ class db_manager{
         void insertTupleToRelation(Relation* , vector<Tuple>&);
         
         bool process_drop_statement(Drop_statement *dr_st);
-        
+
         bool process_select_statement(Select_statement_rest *, char *);
         void process_table_list(Table_list *tb_ls, vector<string>& table_names);
-        bool process_search_condition(Search_condition *sr_cn);
+        
+        bool process_search_condition(Search_condition *sr_cn,  vector<pair<string,string>>&, vector<string>& ); 
+        bool process_boolean_term(Boolean_term*,vector<pair<string,string>>&, vector<string>& ); 
+        bool process_boolean_factor(Boolean_factor*,vector<pair<string,string>>&, vector<string>& ); 
+        bool process_expression(Expression*,vector<pair<string,string>>&, vector<string>& ); 
+        bool process_comp_op(Comp_op*, vector<pair<string,string>>& );
+        bool process_term(Term*,vector<pair<string,string>>&, vector<string>& ); 
+
         bool process_select_list(Select_sublist *, vector<string>& , vector<string>& );
         string process_column_name(Column_name *, vector<string>& );
 
