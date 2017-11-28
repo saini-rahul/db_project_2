@@ -13,12 +13,13 @@ class db_manager{
         MainMemory *mem;
         Disk *disk;
         SchemaManager schema_manager;
-    
+        block_manager *bl_mg;
     public:
         db_manager(MainMemory *mm, Disk *d): schema_manager(mm, d)
         {
             this->mem = mm;
             this->disk= d;
+            this->bl_mg = new block_manager(mm,d, &schema_manager);
         }
         
         bool process_statement(Statement_list *root);

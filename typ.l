@@ -56,12 +56,12 @@
 
 [\"][a-zA-Z0-9!#\$%&'\(\)\*\+,-\./:;<=>\?@\[\]\^_`\{\|\}]+[\"] { 
 yylval.sttr1=(char *)yytext;
-int i=0;
+/*int i=0;
 for(i=0; yylval.sttr1[i+2]!= '\0'; i++)
 {
     yylval.sttr1[i] = yylval.sttr1[i+1];   
 }
-yylval.sttr1[i]= '\0';
+yylval.sttr1[i]= '\0';*/
 return LITERAL; 
 }
 

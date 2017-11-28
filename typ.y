@@ -131,6 +131,8 @@ select_list FROM table_list
 { $$= new Select_statement_rest($1, $3, $5); }
 | select_list FROM table_list WHERE search_condition ORDER BY column_name
 { $$= new Select_statement_rest($1, $3, $5, $8); }
+| select_list FROM table_list ORDER BY column_name
+{ $$= new Select_statement_rest($1, $3, $6); }
 ;
 
 select_list:
@@ -208,7 +210,7 @@ term:
 INTEGER
 { cout<<"sam"<<endl;
 $$= new Term($1); }
-| NAME
+| column_name
 { cout<<"sam1111"<<endl;
 $$= new Term($1); }
 | LITERAL

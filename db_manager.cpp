@@ -25,11 +25,17 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
     vector<string> table_names;
     vector<string> select_lists;
     process_table_list(sl_rs->tb_ls, table_names);
+    string order_by_att = "";
+    
+    if(sl_rs->cl_nm != '\0')
+    {
+        order_by_att = process_column_name(sl_rs->cl_nm, table_names);
+    }
     
     if(sl_rs->sl_ls->c == '\0')
     {
         bool check = process_select_list(sl_rs->sl_ls->sl_sb_ls, select_lists, table_names);
-        std::cout << "ssssssssssssssssssssssssssssssssssssssss" << std::endl;
+        //std::cout << "ssssssssssssssssssssssssssssssssssssssss" << std::endl;
         if(check == false)
             return false;
     }
@@ -45,7 +51,7 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
     {
         std::cout << "Not distinct" << std::endl;
     }
-    return block_manager::process_select_in_memory(schema_manager, *disk, *mem, table_names , select_lists);
+    return bl_mg->process_select_in_memory(table_names , select_lists, order_by_att);
     
     //return true;
 }
@@ -161,7 +167,7 @@ void db_manager::insertTupleToRelation(Relation* relation_ptr, vector<Tuple> &tp
 {
     for(int i=0; i< tp_vc.size(); i++)
     {
-        block_manager::appendTupleToRelation(relation_ptr, *(this->mem), 0, tp_vc[i]);
+        bl_mg->appendTupleToRelation(relation_ptr, 0, tp_vc[i]);
     }
     
     cout << "The table currently have " << relation_ptr->getNumOfBlocks() << " blocks" << endl;
