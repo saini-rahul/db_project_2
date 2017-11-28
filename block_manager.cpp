@@ -103,7 +103,7 @@ class block_manager
   {
     if(table_names.size() == 1) //Only 1 table involved in the query
     {
-        Relation* relation_ptr=schema_manager.getRelation(table_names[0]);
+        Relation* relation_ptr=schema_manager->getRelation(table_names[0]);
         if(relation_ptr == '\0') //no such table
         {
             return false; 
@@ -168,11 +168,11 @@ class block_manager
       
       for(int i = 0; i< tp.size(); i++)
       {
-          if(satisfies_condition(tp[i], postfixExpression) == true)
-          {
+          //if(satisfies_condition(tp[i], postfixExpression) == true)
+          //{
               if(project( tp[i], table_names, select_lists) == false)
                 return false;
-          }
+          //}
       }
       
       return true;
@@ -190,7 +190,6 @@ class block_manager
             relation_ptr->getBlock(i , 0);
             vector<Tuple> tp = mem->getTuples(0, 1);
         
-        
             cout<<*relation_ptr<<endl;
         
     
@@ -198,11 +197,11 @@ class block_manager
         
         for(int i = 0; i < relation_size; i++)
         {
-            Block *block_ptr = mem.getBlock(0); //Grab 0th main memory block
+            Block *block_ptr = mem->getBlock(0); //Grab 0th main memory block
             block_ptr->clear(); //clear the block
             relation_ptr->getBlock(i , 0);
             
-            vector<Tuple> tp = mem.getTuples(0, 1);
+            vector<Tuple> tp = mem->getTuples(0, 1);
             
             for(int i = 0; i< tp.size(); i++)
             {
@@ -217,6 +216,7 @@ class block_manager
       
       return true;
   }
+}
   
 
 static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1, pair<string,string> p2, stack<pair<string,string>>& S )

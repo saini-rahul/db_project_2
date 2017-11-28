@@ -289,7 +289,7 @@ Select_statement_rest::Select_statement_rest(Select_list *sl_ls, Table_list *tb_
 	this-> cl_nm= '\0';
 }
 
-Select_statement_rest(Select_list *sl_ls, Table_list *tb_ls, Column_name *cl_nm)
+Select_statement_rest::Select_statement_rest(Select_list *sl_ls, Table_list *tb_ls, Column_name *cl_nm)
 {
 	this-> sl_ls= sl_ls;
 	this-> tb_ls= tb_ls;

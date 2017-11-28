@@ -35,8 +35,6 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
 
     vector< pair<string,string> > postfixExpression; 
 
-    process_table_list(sl_rs->tb_ls, table_names); //get the vector of table names
-
     if(sl_rs->sl_ls->c == '\0') // If the select list contains a select sublist
     {
         bool check = process_select_list(sl_rs->sl_ls->sl_sb_ls, select_lists, table_names);
