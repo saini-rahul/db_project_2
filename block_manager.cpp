@@ -191,12 +191,19 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
                         // {
                             
                         // }else 
-                        if (postfixExpression[i].first ==  "<" || postfixExpression[i].first ==  ">" || postfixExpression[i].first ==  "=" || postfixExpression[i].first ==  "+" ||postfixExpression[i].first ==  "-"||postfixExpression[i].first ==  "*" )
+                        if (postfixExpression[i].first ==  "<" || postfixExpression[i].first ==  ">" || postfixExpression[i].first ==  "+" ||postfixExpression[i].first ==  "-"||postfixExpression[i].first ==  "*" )
                         {
                             bool flag = processTupleOperator(tp,postfixExpression[i].first,p1, p2,S );
                             if (flag == false)
                                 return false;
-                        } 
+                        }
+                        // else 
+                        // if (postfixExpression[i].first ==  "=")
+                        // {
+                        //     if(p1.second == "LITERAL" || p2.second == "LITERAL" ){
+                        //         processTupleLiteral(tp,postfixExpression[i].first,p1, p2,S);
+                        //     }
+                        // }
                     }
                     
       }
