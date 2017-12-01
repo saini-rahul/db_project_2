@@ -63,6 +63,8 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
            L LITERAL
            I INTEGER
            
+            1/0 TRUTH-VALUE
+            Integer OP-VALUE
            
         */
         
