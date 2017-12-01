@@ -14,21 +14,63 @@
 #include "Tuple.h"
 #include<climits>
 #include <string>
+#include <algorithm>
 #include <utility>
 #include<stack>
 
 using namespace std;
 
+struct less_than_key
+{
+    string field_name;
+    string filed_type;
+
+    less_than_key(string field_name, string filed_type) 
+    {
+        this->field_name = field_name; 
+        this->filed_type = filed_type;
+    }
+    
+    inline bool operator() (const Tuple& tp1, const Tuple& tp2)
+    {
+        if(filed_type == "INT")
+        {
+            int val1 = tp1.getField(field_name).integer;
+            int val2 = tp2.getField(field_name).integer;
+            return (val1 < val2);
+        }
+        else
+        {
+            string str1 = *(tp1.getField(field_name).str);
+            string str2 = *(tp2.getField(field_name).str);
+            return (str1 < str2);
+        }
+    }
+};
+
+
 class block_manager
 {
+  private:
+        MainMemory *mem;
+        Disk *disk;
+        SchemaManager *schema_manager;
+    
   public:
-  static void appendTupleToRelation(Relation* relation_ptr, MainMemory& mem, int memory_block_index, Tuple& tuple) 
+        block_manager(MainMemory *mm, Disk *d, SchemaManager *schema_manager)
+        {
+            this->mem = mm;
+            this->disk= d;
+            this->schema_manager = schema_manager;
+        }
+  
+  void appendTupleToRelation(Relation* relation_ptr, int memory_block_index, Tuple& tuple) 
   {
     Block* block_ptr;
     if (relation_ptr->getNumOfBlocks()==0) {
         cout << "The relation is empty" << endl;
         cout << "Get the handle to the memory block " << memory_block_index << " and clear it" << endl;
-        block_ptr=mem.getBlock(memory_block_index);
+        block_ptr=mem->getBlock(memory_block_index);
         block_ptr->clear(); //clear the block
         block_ptr->appendTuple(tuple); // append the tuple
         cout << "Write to the first block of the relation" << endl;
@@ -38,7 +80,7 @@ class block_manager
     {
         cout << "Read the last block of the relation into memory block 5:" << endl;
         relation_ptr->getBlock(relation_ptr->getNumOfBlocks()-1,memory_block_index);
-        block_ptr=mem.getBlock(memory_block_index);
+        block_ptr=mem->getBlock(memory_block_index);
 
         if (block_ptr->isFull()) {
             cout << "(The block is full: Clear the memory block and append the tuple)" << endl;
@@ -57,12 +99,11 @@ class block_manager
     }  
   }
   
-  static bool process_select_in_memory(SchemaManager schema_manager, Disk disk, MainMemory& mem, vector<string> table_names , vector<string> select_lists, vector<pair<string,string>>& postfixExpression)
+  bool process_select_in_memory(vector<string>& table_names , vector<string>& select_lists, string order_by_att, vector<pair<string,string>>& postfixExpression)
   {
     if(table_names.size() == 1) //Only 1 table involved in the query
     {
-        
-        Relation* relation_ptr=schema_manager.getRelation(table_names[0]);
+        Relation* relation_ptr=schema_manager->getRelation(table_names[0]);
         if(relation_ptr == '\0') //no such table
         {
             return false; 
@@ -70,38 +111,114 @@ class block_manager
         
         cout<<"SELECT-STATEMENT: Bring Blocks from Relation: BEGIN "<<endl;
         int relation_size = relation_ptr->getNumOfBlocks();
+        int mem_size = mem->getMemorySize();
+        bool res;
         
+        if(mem_size >= relation_size)
+        {
+            res = one_pass_select_in_memory(relation_ptr, table_names, select_lists, order_by_att, postfixExpression);
+        }
+        else
+        {
+            res = two_pass_select_in_memory(relation_ptr, table_names, select_lists, order_by_att, postfixExpression);
+        }
         
+        if(res == false)
+            return false;
+            
         cout<<*relation_ptr<<endl;
+    }
+    
+    return true;
+  }
+  
+  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression)
+  {
+      cout<<"One pass here "<<endl;
+      int relation_size = relation_ptr->getNumOfBlocks();
+      relation_ptr->getBlocks(0,0,relation_size);
+      vector<Tuple> tp = mem->getTuples(0,relation_size);
+      
+      if(order_by_att.size()>0)
+      {
+         Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
+         
+         string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
+          
+         if(schema.fieldNameExists(fields) == false)
+            return false;
+          
+         enum FIELD_TYPE typ = schema.getFieldType(fields);
+         string cc = "";
+          
+         if(typ == INT)
+         {
+            cc = "INT";
+         }
+         else
+            cc= "STR20";
+            
+         sort(tp.begin(), tp.end(), less_than_key(fields , cc));
+         
+      }
+      
+      cout<<"sorted starts here aaaaaaaaaaaaaaaaaaaaaaaaaa"<<endl;
+      cout<<mem<<endl;
+      cout<<"sorted ends here aaaaaaaaaaaaaaaaaaaaaaaaaa"<<endl;
+      
+      for(int i = 0; i< tp.size(); i++)
+      {
+          //if(satisfies_condition(tp[i], postfixExpression) == true)
+          //{
+              if(project( tp[i], table_names, select_lists) == false)
+                return false;
+          //}
+      }
+      
+      return true;
+  }
+  
+  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression)
+  {
+      cout<<"Two pass here "<<endl;
+      int mem_size = mem->getMemorySize();
+      int relation_size = relation_ptr->getNumOfBlocks();
+      for(int i = 0; i < relation_size; i++)
+      {
+            //Block *block_ptr=mem->getBlock(0);
+            //block_ptr->clear(); //clear the block
+            relation_ptr->getBlock(i , 0);
+            vector<Tuple> tp = mem->getTuples(0, 1);
+        
+            cout<<*relation_ptr<<endl;
         
     
         cout<<"Tuple based select is here "<<relation_size<<"    "<<endl;
         
         for(int i = 0; i < relation_size; i++)
         {
-            Block *block_ptr = mem.getBlock(0); //Grab 0th main memory block
+            Block *block_ptr = mem->getBlock(0); //Grab 0th main memory block
             block_ptr->clear(); //clear the block
             relation_ptr->getBlock(i , 0);
             
-            vector<Tuple> tp = mem.getTuples(0, 1);
+            vector<Tuple> tp = mem->getTuples(0, 1);
             
             for(int i = 0; i< tp.size(); i++)
             {
                 if(satisfies_condition(tp[i], postfixExpression) == true) //Check the tuple for where clause
                 {
-                    if(project(schema_manager.getRelation(table_names[0])->getSchema(), tp[i], select_lists) == false)
+                    if(project(tp[i], table_names,select_lists) == false)
                         return false;
                 }
             }
             
         }
-        
-    }
-    
-    return true;
+      
+      return true;
   }
+}
   
-  
+
 static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1, pair<string,string> p2, stack<pair<string,string>>& S )
 {
     int val1, val2;
@@ -217,14 +334,14 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
      
   }
   
-  static bool project(Schema schema, Tuple tp, vector<string>& select_lists)
+  bool project(Tuple tp, vector<string>& table_names, vector<string>& select_lists)
   {
       vector<string> values;
-      
+      Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
       for(int i = 0; i < select_lists.size(); i++)
       {
           string fields = select_lists[i].substr(select_lists[i].find(".")+1, select_lists[i].size()-1);
-          //cout<< fields <<" is the fl nm"<<endl;
+          
           if(fields[0] == '*')
           {
               tp.printTuple();
@@ -238,12 +355,11 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
           
           if(typ == INT)
           {
-              //std::cout << "INTTTTTTTTTTTTTTTTTTTTTTT     " << tp.getField(fields).integer<<std::endl;
-            cc = to_string(tp.getField(fields).integer);
+              cc = to_string(tp.getField(fields).integer);
           }
           else
-            cc= *(tp.getField(fields).str);
-        
+              cc= *(tp.getField(fields).str);
+              
           values.push_back(cc);
       }
 
@@ -255,22 +371,5 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
       return true;
   }
   
-  static bool tuple_based_select(SchemaManager schema_manager, Relation* relation_ptr, MainMemory mem, int relation_size, vector<string> table_names , vector<string> select_lists)
-  {
-      cout<<"One pass here "<<endl;
-      int rl_sz = relation_ptr->getNumOfBlocks();
-      //
-      for(int i = 0; i < rl_sz; i++)
-      {
-          relation_ptr->getBlock(i, 0);
-      }
-      
-      return true;
-  }
   
-  static bool two_pass_process(SchemaManager schema_manager, Relation* relation_ptr, MainMemory mem, int relation_size, vector<string> table_names , vector<string> select_lists)
-  {
-      cout<<"Two pass here "<<endl;
-      return true;
-  }
 };

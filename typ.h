@@ -165,6 +165,7 @@ class Table_list{
 public:
 	Table_name *tb_nm;
 	Table_list *tb_ls;
+	
 	Table_list(Table_name *tb_nm);
 	Table_list(Table_name *tb_nm, Table_list *tb_ls);	
 };
@@ -173,6 +174,7 @@ class Select_sublist:public Node{
 public:
 	Column_name *cl_nm;
 	Select_sublist *sl_sls;
+	
 	Select_sublist(Column_name *cl_nm);
 	Select_sublist(Column_name *cl_nm, Select_sublist *sl_sls);	
 };
@@ -197,6 +199,7 @@ public:
 
 	Select_statement_rest(Select_list *sl_ls, Table_list *tb_ls);
 	Select_statement_rest(Select_list *sl_ls, Table_list *tb_ls, Search_condition *sr_cn);
+	Select_statement_rest(Select_list *sl_ls, Table_list *tb_ls, Column_name *cl_nm);
 	Select_statement_rest(Select_list *sl_ls, Table_list *tb_ls, Search_condition *sr_cn, Column_name *cl_nm);
 };
 
