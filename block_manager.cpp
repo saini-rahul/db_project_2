@@ -126,7 +126,7 @@ class block_manager
         if(res == false)
             return false;
             
-        cout<<*relation_ptr<<endl;
+        //cout<<*relation_ptr<<endl;
     }
     
     return true;
@@ -297,7 +297,7 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
         }
         truthValType = "TRUTH-VALUE";
 
-    }else{                           
+    }else{       //(p2.second <> "LITERAL" and p1.second <> "LITERAL")                    
         if(p1.second == "COLUMN-NAME")
         {
              s = p1.first;
@@ -382,13 +382,34 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
                         pair<string,string> p2 = S.top();
                         S.pop();
                         
-                        // if ( postfixExpression[i].first ==  "OR")
-                        // {
-                        //     //p1 and p2 have to be truth values and if either is 1 we return a truth value of 1
-                        // }else if (postfixExpression[i].first ==  "AND") 
-                        // {
+                        if ( postfixExpression[i].first ==  "OR")
+                        {
+                            if(p1.second != "TRUTH-VALUE" || p2.second != "TRUTH-VALUE")
+                            {
+                                return false;
+                            }else //both operands of OR are truth values
+                            {
+                                //if either is 1 push 1, else push 0
+                                if(p1.first == "1" || p2.first == "1")
+                                    S.push(make_pair("1", "TRUTH-VALUE" ));
+                                else
+                                    S.push(make_pair("0", "TRUTH-VALUE" ));
+                            }
+                        }else if (postfixExpression[i].first ==  "AND") 
+                        {
+                            if(p1.second != "TRUTH-VALUE" || p2.second != "TRUTH-VALUE")
+                            {
+                                return false;
+                            }else //both operands of AND are truth values
+                            {
+                                //if both are 1 push 1, else push 0
+                                if(p1.first == "1" && p2.first == "1")
+                                    S.push(make_pair("1", "TRUTH-VALUE" ));
+                                else
+                                    S.push(make_pair("0", "TRUTH-VALUE" ));
+                            }
                             
-                        // }else 
+                        }else 
                         if (postfixExpression[i].first ==  "<" || postfixExpression[i].first ==  ">" || postfixExpression[i].first ==  "+" ||postfixExpression[i].first ==  "-"||postfixExpression[i].first ==  "*" || postfixExpression[i].first ==  "=")
                         {
                             bool flag = processTupleOperator(tp,postfixExpression[i].first,p1, p2,S );
