@@ -83,7 +83,7 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
     {
         std::cout << "DISTINCT: False" << std::endl;
     }
-    return bl_mg->process_select_in_memory(table_names , select_lists, order_by_att, postfixExpression);
+    return bl_mg->process_select_in_memory(table_names , select_lists, order_by_att, postfixExpression, d);
 }
 
 /* returns empty string in error condition */
