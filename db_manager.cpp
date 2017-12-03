@@ -301,6 +301,7 @@ bool db_manager::process_insert_statement(Insert_statement *is_st)
             
         tp_vc.push_back(tuple); 
     }
+    
     insertTupleToRelation(relation_ptr,tp_vc);
     // Now we have created a tuple, let's insert it into relation
     return true;

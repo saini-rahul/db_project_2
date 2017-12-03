@@ -96,7 +96,7 @@ class block_manager
   bool process_select_in_memory(vector<string>& table_names , vector<string>& select_lists, string order_by_att, vector<pair<string,string>>& postfixExpression, char *d)
   {
         vector<string> final_rel;
-        Relation *relation_ptr = prepare_join(table_names, final_rel, select_lists);
+        Relation *relation_ptr = prepare_join(table_names, final_rel, select_lists, postfixExpression);
     
         //Relation* relation_ptr=schema_manager->getRelation(table_names[0]);
         if(relation_ptr == '\0') //no such table
@@ -108,14 +108,15 @@ class block_manager
         int relation_size = relation_ptr->getNumOfBlocks();
         int mem_size = mem->getMemorySize();
         bool res;
+        vector<vector<string>> result;
         
         if(mem_size >= relation_size)
         {
-            res = one_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression,d);
+            res = one_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression,d, result);
         }
         else
         {
-            res = two_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression,d);
+            res = two_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression,d, result);
         }
         
         if(final_rel[0] != table_names[0])
@@ -126,8 +127,8 @@ class block_manager
         if(res == false)
             return false;
             
+        printSelect(result);
         //cout<<*relation_ptr<<endl;
-    }
     
     return true;
   }
@@ -160,7 +161,7 @@ class block_manager
          return true;
   }
   
-  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, char *d)
+  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, char *d, vector<vector<string>>& result)
   {
       cout<<"One pass here "<<endl;
       int relation_size = relation_ptr->getNumOfBlocks();
@@ -212,31 +213,29 @@ class block_manager
             relation_ptr = two_pass_sort(relation_ptr, table_names, fields);
       }
       
-      for(int i = 0; i< tp.size(); i++)
-      {
-          if(satisfies_condition(tp[i], postfixExpression) == true)
-          {
-              if(i!=0)
-              {
-                if(project( tp[i], tp[i-1], table_names, select_lists, d, 1) == false)
-                    return false;
-              }
-              else
-              {
-                  if(project( tp[i], tp[i], table_names, select_lists, d, 0) == false)
-                    return false;
-              }
-          }
-      }
-      
       if(order_by_att.size()>0 && sorted == 0)
       {
           if(one_pass_sort(schema, tp, order_by_att) == false) 
               return false;
-          if(satisfies_condition(tp[i], postfixExpression) == true)
+      }
+      
+      //vector<vector<string>> result;
+      for(int i = 0; i< tp.size(); i++)
+      {
+          vector<string> values;
+          if(satisfies_condition(tp[i], table_names[0], postfixExpression) == true)
           {
-              if(project( tp[i], table_names, select_lists) == false)
-                return false;
+              if(i!=0)
+              {
+                if(project( tp[i], tp[i-1], table_names, select_lists, d, 1, values) == false)
+                    return false;
+              }
+              else
+              {
+                  if(project( tp[i], tp[i], table_names, select_lists, d, 0, values) == false)
+                    return false;
+              }
+              result.push_back(values);
           }
       }
       
@@ -433,7 +432,7 @@ class block_manager
   }
 
   
-  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, char *d)
+  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, char *d, vector<vector<string>>& result)
   {
         cout<<"Two pass here "<<endl;
         int mem_size = mem->getMemorySize();
@@ -445,14 +444,6 @@ class block_manager
         std::cout << "sssssssssssssssschhhemeler" <<schema<< std::endl;
         if(d != '\0')
         {
-            /*string fields = "";
-            if(order_by_att.size() > 0)
-                fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
-            else
-                fields = schema.getFieldName(0);
-            
-            if(schema.fieldNameExists(fields) == false)
-                return false;*/
             string fields = "";
             if(order_by_att.size() > 0 && select_lists[0][1] == '*')
             {
@@ -474,6 +465,17 @@ class block_manager
             relation_ptr = two_pass_sort(relation_ptr, table_names, fields);
         }
         
+        if(order_by_att.size()>0 && sorted == 0)
+        {
+            string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
+         
+            if(schema.fieldNameExists(fields) == false)
+                return false;
+        
+            relation_ptr = two_pass_sort(relation_ptr, table_names, fields);
+        }
+        
+        //cout<<"fffffffffffffffffffff"<<endl;
         int read_blocks_no = mem_size;
         for(int i = 0; i < relation_size;)
         {
@@ -489,44 +491,37 @@ class block_manager
             }
 
             vector<Tuple> tp = mem->getTuples(0, read_blocks_no);
+            //vector<vector<string>> result;
             for(int j = 0; j< tp.size(); j++)
             {
-                if(satisfies_condition(tp[j], postfixExpression) == true) //Check the tuple for where clause
+                vector<string> values;
+                if(satisfies_condition(tp[j], table_names[0], postfixExpression) == true) //Check the tuple for where clause
                 {
                     if(j!=0)
                     {
-                        if(project( tp[j], tp[j-1], table_names, select_lists, d, 1) == false)
+                        if(project( tp[j], tp[j-1], table_names, select_lists, d, 1, values) == false)
                             return false;
                     }
                     else if(j == 0 && i == 0)
                     {
-                        if(project( tp[j], tp[j], table_names, select_lists, d, 0) == false)
+                        if(project( tp[j], tp[j], table_names, select_lists, d, 0, values) == false)
                             return false;
                     }
+                    result.push_back(values);
                 }
             }
             
             i = i + mem_size;
         }
         
-        if(order_by_att.size()>0 && sorted == 0)
-        {
-            string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
-         
-            if(schema.fieldNameExists(fields) == false)
-                return false;
-        
-            relation_ptr = two_pass_sort(relation_ptr, table_names, fields);
-        }
-        
-        if(order_by_att.size() || d != '\0')    
+        if(order_by_att.size() > 0 || d != '\0')    
             schema_manager->deleteRelation("final_rel");
         
         return true;
 }
   
 
-static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1, pair<string,string> p2, stack<pair<string,string>>& S )
+static bool  processTupleOperator(Tuple tuple, string table_names, string op, pair<string,string> p1, pair<string,string> p2, stack<pair<string,string>>& S )
 {
     //p1's value is val2/strVal2; p2's value is val1/strVal1; since p1 is popped first, so it is on right of the operator 
     int val1, val2;
@@ -550,9 +545,18 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
                     //extract the strig value of column
                     s = p1.first;
                     found = s.find('.');
-                    //extract the column name 
-                    t = s.substr(found+1);
-                                            
+                    //extract the column name
+                    if(table_names.find("temp") != 0)
+                    {
+                        //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
+                        t = s.substr(found+1);
+                    }
+                    else
+                    {
+                        //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
+                        t = s;
+                    }
+                        
                     if (tuple_schema.getFieldType(t) == INT) 
                         return false;
                     else
@@ -576,7 +580,18 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
                     s = p2.first;
                     found = s.find('.');
                     //extract the column name 
-                    t = s.substr(found+1);
+                    //t = s.substr(found+1);
+                    
+                    if(table_names.find("temp") != 0)
+                    {
+                        //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
+                        t = s.substr(found+1);
+                    }
+                    else
+                    {
+                        //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
+                        t = s;
+                    }
                                             
                     if (tuple_schema.getFieldType(t) == INT) 
                         return false;
@@ -610,7 +625,17 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
              s = p1.first;
              found = s.find('.');
             //extract the column name 
-             t = s.substr(found+1);
+             //t = s.substr(found+1);
+             if(table_names.find("temp") != 0)
+             {
+                //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
+                t = s.substr(found+1);
+             }
+             else
+             {
+                //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
+                t = s;
+             }
                                     
             if (tuple_schema.getFieldType(t) == INT) 
                 val2 = tuple.getField(t).integer;
@@ -625,7 +650,17 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
             s = p2.first;
             found = s.find('.');
             //extract the column name 
-            t = s.substr(found+1);
+            //t = s.substr(found+1);
+            if(table_names.find("temp") != 0)
+            {
+                //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
+                t = s.substr(found+1);
+            }
+            else
+            {
+                //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
+                t = s;
+            }
                                     
             if (tuple_schema.getFieldType(t) == INT) 
               val1 = tuple.getField(t).integer;
@@ -664,7 +699,7 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
     return true;
   }
   
-  static bool satisfies_condition(Tuple tp, vector<pair<string,string>>& postfixExpression)
+  static bool satisfies_condition(Tuple tp,string table_names, vector<pair<string,string>>& postfixExpression)
   {
       if(postfixExpression.size() == 0) return true; //if there is no where clause, all tuples satisfy
       stack<pair<string,string>> S;
@@ -719,7 +754,7 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
                         }else 
                         if (postfixExpression[i].first ==  "<" || postfixExpression[i].first ==  ">" || postfixExpression[i].first ==  "+" ||postfixExpression[i].first ==  "-"||postfixExpression[i].first ==  "*" || postfixExpression[i].first ==  "=")
                         {
-                            bool flag = processTupleOperator(tp,postfixExpression[i].first,p1, p2,S );
+                            bool flag = processTupleOperator(tp, table_names, postfixExpression[i].first,p1, p2,S );
                             if (flag == false)
                                 return false;
                         }
@@ -748,6 +783,7 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
       int tmin = INT_MAX;
       for(int i = 0; i < relation_size.size(); i++)
       {
+          //cout<<"pos is "<<i<<"  aaa   "<<relation_size[i];
           if(relation_size[i] < tmin)
           {
               tmin = relation_size[i];
@@ -766,10 +802,15 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
       }
   }
   
+  static bool satisfies_condition1(Tuple tp, string table_names, vector<string> field_name, vector<enum FIELD_TYPE> field_types, vector<pair<string,string>>& postfixExpression)
+  {
+      return true;
+  }
   
   //Performs join of multiple tables
-  Relation* prepare_join(vector<string>& table_names, vector<string>& final_rel, vector<string>& select_lists)
+  Relation* prepare_join(vector<string> table_namess, vector<string>& final_rel, vector<string>& select_lists, vector<pair<string,string>>& postfixExpression)
   {
+      vector<string> table_names(table_namess);
       if(table_names.size() == 1)
       {
           Relation *ptr = schema_manager->getRelation(table_names[0]);
@@ -799,7 +840,7 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
       for(int i =0; i < sz-1; i++)
       {
           getMinTwo(relation_size, min, s_min);
-          final_rel_ptr = join(table_names, relation_ptr, relation_size, min, s_min, i);
+          final_rel_ptr = join(table_names, relation_ptr, relation_size, min, s_min, i, postfixExpression);
       }
       string ss = "temp"+to_string(sz-2);
       final_rel.push_back(ss);
@@ -820,13 +861,17 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
   
   //Joins two current minimum tables and create a temporary relation
   //Performs both one pass and two pass join
-  Relation* join(vector<string>& table_names, vector<Relation*> relation_ptr, vector<int> relation_size, int min, int s_min, int itr)
+  Relation* join(vector<string>& table_names, vector<Relation*>& relation_ptr, vector<int>& relation_size, int min, int s_min, int itr, vector<pair<string,string>>& postfixExpression)
   {
       vector<string> values;
       Schema schema1 = schema_manager->getRelation(table_names[min])->getSchema();
       Schema schema2 = schema_manager->getRelation(table_names[s_min])->getSchema();
-      vector<string> field_name1 = schema1.getFieldNames();
-      vector<enum FIELD_TYPE> field_types1 = schema1.getFieldTypes();
+      vector<string> field_name = schema1.getFieldNames();
+      vector<enum FIELD_TYPE> field_types = schema1.getFieldTypes();
+      
+      vector<string> field_name1;
+      vector<enum FIELD_TYPE> field_types1;
+      
       vector<string> field_name2 = schema2.getFieldNames();
       vector<enum FIELD_TYPE> field_types2 = schema2.getFieldTypes();
       int no_fields1 = schema1.getNumOfFields();
@@ -835,12 +880,23 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
       
       for(int i =0; i < no_fields1; i++)
       {
-          field_name1[i] = table_names[min]+"."+field_name1[i];
+          
+          if(table_names[min].find("temp") != 0)
+          {
+            field_name[i] = table_names[min]+"."+field_name[i];
+          }
+          
+          field_name1.push_back(field_name[i]);
+          field_types1.push_back(field_types[i]);
       }
       
       for(int i =0; i < no_fields2; i++)
       {
-          field_name2[i] = table_names[s_min]+"."+field_name2[i];
+          if(table_names[s_min].find("temp") != 0)
+          {
+              field_name2[i] = table_names[s_min]+"."+field_name2[i];
+          }
+          
           field_name1.push_back(field_name2[i]);
           field_types1.push_back(field_types2[i]);
       }
@@ -863,12 +919,21 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
           
           for(int i = 0; i < tp1.size(); i++)
           {
+              if(satisfies_condition1(tp1[i], table_names[min], field_name, field_types, postfixExpression) == false)
+              {
+                  continue;
+              }
               for(int rl = 0; rl < relation_size[s_min]; rl++)
               {
                 relation_ptr[s_min]->getBlocks(rl, relation_size[min], 1);
                 vector<Tuple> tp2 = mem->getTuples(relation_size[min], 1);
                 for(int j = 0; j < tp2.size(); j++)
                 {
+                    if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
+                    {
+                        continue;
+                    }
+                    
                     Tuple tuple = temp_ptr->createTuple();
                     int k =0;
                     for(int l =0; l < no_fields1; l++)
@@ -898,7 +963,10 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
                         k++;
                     }
                     //cout<<tuple<<endl;
-                    appendTupleToRelation(temp_ptr, relation_size[min]+1, tuple);
+                    if(satisfies_condition1(tuple, relation_name, field_name1, field_types1,postfixExpression) == true)
+                    {
+                        appendTupleToRelation(temp_ptr, relation_size[min]+1, tuple);
+                    }
                 }
               }
           }
@@ -967,21 +1035,33 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
             
             i = i + mem_size - 2;
         }
-        //cout<<*temp_ptr<<endl;
+        cout<<*temp_ptr<<endl;
       }
-    
-      relation_size.erase(relation_size.begin() + min);
-      relation_ptr.erase(relation_ptr.begin() + s_min);
+      
+      swap(relation_ptr[min], relation_ptr.back());
+      relation_ptr.pop_back();
+      swap(relation_size[min], relation_size.back());
+      relation_size.pop_back();
+      swap(table_names[min], table_names.back());
+      table_names.pop_back();
+      
+      swap(relation_ptr[s_min], relation_ptr.back());
+      relation_ptr.pop_back();
+      swap(relation_size[s_min], relation_size.back());
+      relation_size.pop_back();
+      swap(table_names[s_min], table_names.back());
+      table_names.pop_back();
+      
       relation_ptr.push_back(temp_ptr);
       relation_size.push_back(temp_ptr->getNumOfBlocks());
+      table_names.push_back(relation_name);
+      
       return temp_ptr;
-      //return true;
   }
   
-  bool project(Tuple tp, Tuple tp_pr, vector<string>& table_names, vector<string>& select_lists, char *d, int flag)
+  bool project(Tuple tp, Tuple tp_pr, vector<string>& table_names, vector<string>& select_lists, char *d, int flag, vector<string>& values)
   {
-      cout<<"Projection/Printing: BEGIN:"<<endl;
-      vector<string> values;
+      //cout<<"Projection/Printing: BEGIN:"<<endl;
       Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
       //int pr_flag = 0;
       int nd_flag = 0;
@@ -1061,13 +1141,22 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
       if(nd_flag == 0 && d != '\0')
             return true;
     
-      for(int i = 0; i < values.size(); i++)
-      {
-          cout<<values[i]<<"\t";
-      }
-      cout<<endl;
-
       return true;
+  }
+  
+  void printSelect(vector<vector<string>> result)
+  {
+      cout<<"res is "<<result.size()<<endl;
+      for(int j = 0; j < result.size(); j++)
+      {
+            vector<string> values = result[j];
+            for(int i = 0; i < values.size(); i++)
+            {
+                cout<<values[i]<<"\t";
+            }
+            cout<<endl;
+      }
+      
   }
   
   

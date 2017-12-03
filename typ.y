@@ -86,7 +86,7 @@ return 1;
 };
 
 statement:
-create_statement 
+create_statement NEWLINE
 { $$= new Statement($1); }
 | drop_statement
 { $$= new Statement($1); }
@@ -208,13 +208,13 @@ term
 
 term:
 INTEGER
-{ cout<<"sam"<<endl;
+{ 
 $$= new Term($1); }
 | column_name
-{ cout<<"sam1111"<<endl;
+{ 
 $$= new Term($1); }
 | LITERAL
-{ cout<<"sam1111"<<endl;
+{ 
 $$= new Term($1);
 };
 
@@ -254,7 +254,6 @@ comp_op:
 table_name:
 NAME
 { $$= new Table_name($1); 
-//cout<<"This is here |"<<$1<<"|"<<endl;
 }
 ;
 
@@ -262,7 +261,6 @@ attribute_name:
 NAME 
 { 
 $$= new Attribute_name($1); 
-//cout<<"Attttttt name is "<<$1<<endl;
 }
 ;
 
@@ -287,15 +285,12 @@ int main()
  MainMemory mem;
  Disk disk;
  db_manager dbManager(&mem, &disk);
- cout<<"main here"<<endl;
  
  while(1)
  {
 	yyparse();
 	if(root != '\0')
 	    root -> printFunc();
-	else
-	    cout<<"end of print root null"<<endl;
 	
 	string result = dbManager.process_statement(root) == 0? "FAILURE" : "SUCCESS";  
 	cout<<result<<endl;

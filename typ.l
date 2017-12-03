@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include "typ.h"
 #include "y.tab.h"
-//extern "C" int yylex();
 %}
 
 %%
@@ -54,6 +53,9 @@
 "STR20" { return STR20_L; }
 "EOL" { return 0; }
 
+[\n] { 
+return NEWLINE; };  
+
 [\"][a-zA-Z0-9!#\$%&'\(\)\*\+,-\./:;<=>\?@\[\]\^_`\{\|\}]+[\"] { 
 yylval.sttr1=(char *)yytext;
 int i=0;
@@ -75,13 +77,8 @@ return NAME; }
          return(INTEGER);
         }
 [\t]+ ;
-[\n]+ { 
-return NEWLINE; };  
-
-
 
 %%
-
 
 int yywrap()
 {
