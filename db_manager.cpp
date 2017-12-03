@@ -16,11 +16,31 @@ bool db_manager::process_statement(Statement_list *root)
     }
     else if(root->st->sl_st != '\0')
     {
-        return process_select_statement(root->st->sl_st->sl_st_rs, root->st->sl_st->op_ds);
+        vector<vector<string>> result;
+        if(process_select_statement(root->st->sl_st->sl_st_rs, root->st->sl_st->op_ds, result) == false)
+            return false;
+        printSelect(result);
+        return true;
     }
 }
 
-bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
+void db_manager::printSelect(vector<vector<string>> result)
+{
+      cout<<"res is "<<result.size()<<endl;
+      for(int j = 0; j < result.size(); j++)
+      {
+            vector<string> values = result[j];
+            if(values.size() == 0)
+                continue;
+            for(int i = 0; i < values.size(); i++)
+            {
+                cout<<values[i]<<"\t";
+            }
+            cout<<endl;
+      }
+}
+
+bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d, vector<vector<string>>& result)
 {
     vector<string> table_names;
     vector<string> select_lists;
@@ -85,7 +105,7 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d)
     {
         std::cout << "DISTINCT: False" << std::endl;
     }
-    return bl_mg->process_select_in_memory(table_names , select_lists, order_by_att, postfixExpression, d);
+    return bl_mg->process_select_in_memory(table_names , select_lists, order_by_att, postfixExpression, d, result);
 }
 
 /* returns empty string in error condition */
@@ -301,11 +321,66 @@ bool db_manager::process_insert_statement(Insert_statement *is_st)
             
         tp_vc.push_back(tuple); 
     }
-    
+    else
+    {
+        vector<vector<string>> result;
+        if(process_select_statement(is_st-> is_tp->sl_st->sl_st_rs, is_st-> is_tp->sl_st->op_ds, result) == false)
+            return false;
+        if(result.size() == 0)
+        {
+            return true;
+        }
+            
+        Schema schema = schema_manager.getRelation(is_st->tb_nm->nm)->getSchema();
+        if(att_ls.size() != result[0].size())
+        {
+            return false;
+        }
+        
+        for(int j = 0; j < result.size(); j++)
+        {
+            vector<string> values = result[j];
+            if(values.size() == 0)
+                continue;
+            
+            Tuple tpl = relation_ptr->createTuple();
+            
+            for(int i = 0; i < values.size(); i++)
+            {
+                enum FIELD_TYPE typ = schema.getFieldType(att_ls[i]);
+                if(typ == INT)
+                {
+                    
+                    string aa= values[i];
+                    for(int k =0; k < aa.size(); k++)
+                    {
+                        if(isdigit(aa[k]) == false)
+                        {
+                            return false;
+                        }
+                    }
+                    tpl.setField(i, stoi(values[i]));
+                }
+                else
+                {
+                    tpl.setField(i, values[i]);
+                }
+            }
+            if(tpl.isNull())
+                return false;
+            
+            tp_vc.push_back(tpl);
+            
+        }
+        
+        
+    }
     insertTupleToRelation(relation_ptr,tp_vc);
     // Now we have created a tuple, let's insert it into relation
     return true;
 }
+
+
 
 void db_manager::insertTupleToRelation(Relation* relation_ptr, vector<Tuple> &tp_vc)
 {

@@ -30,10 +30,11 @@ class db_manager{
         bool process_insert_statement(Insert_statement *cr_st);
         void process_attribute_list(Attribute_list*, vector<string>&);
         void insertTupleToRelation(Relation* , vector<Tuple>&);
+        void printSelect(vector<vector<string>> result);
         
         bool process_drop_statement(Drop_statement *dr_st);
 
-        bool process_select_statement(Select_statement_rest *, char *);
+        bool process_select_statement(Select_statement_rest *, char *, vector<vector<string>>&);
         void process_table_list(Table_list *tb_ls, vector<string>& table_names);
         
         bool process_search_condition(Search_condition *sr_cn,  vector<pair<string,string>>&, vector<string>& ); 

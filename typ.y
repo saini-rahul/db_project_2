@@ -88,13 +88,13 @@ return 1;
 statement:
 create_statement NEWLINE
 { $$= new Statement($1); }
-| drop_statement
+| drop_statement NEWLINE
 { $$= new Statement($1); }
-| select_statement 
+| select_statement NEWLINE 
 { $$= new Statement($1); }
-| insert_statement
+| insert_statement NEWLINE
 { $$= new Statement($1); }
-| delete_statement
+| delete_statement NEWLINE
 { $$= new Statement($1); }
 ;
 
@@ -117,7 +117,10 @@ DROP TABLE table_name
 
 select_statement:
 SELECT DISTINCT select_statement_rest
-{ $$= new Select_statement( $3, "DISTINCT" ); }
+{ 
+char *d = (char *)"DISTINCT";
+//d = "DISTINCT";
+$$= new Select_statement( $3, d ); }
 | SELECT select_statement_rest
 { $$= new Select_statement($2); }
 
@@ -230,7 +233,9 @@ value:
 INTEGER 
 { $$= new Value($1); }
 | NUL
-{ $$= new Value("NULL"); }
+{ 
+char *n = (char *)"NULL";
+$$= new Value(n); }
 | LITERAL
 { $$= new Value($1); }
 ;
@@ -273,9 +278,14 @@ attribute_name
 
 data_type:
 INT_L
-{ $$= new Data_type("INT"); } 
+{ 
+char *n = (char *)"INT";
+$$= new Data_type(n); } 
 | STR20_L
-{ $$= new Data_type("STR20"); }
+{ 
+char *n = (char *)"STR20";
+$$= new Data_type(n); 
+}
 ;
 
 
@@ -286,17 +296,29 @@ int main()
  Disk disk;
  db_manager dbManager(&mem, &disk);
  
+ disk.resetDiskIOs();
+ disk.resetDiskTimer();
+
+ // Another way to time
+ clock_t start_time;
+ 
  while(1)
  {
 	yyparse();
+	start_time=clock();
+	disk.resetDiskTimer();
 	if(root != '\0')
 	    root -> printFunc();
 	
 	string result = dbManager.process_statement(root) == 0? "FAILURE" : "SUCCESS";  
 	cout<<result<<endl;
 	
+	cout << "Real elapse time = " << ((double)(clock()-start_time)/CLOCKS_PER_SEC*1000) << " ms" << endl;
+    cout << "Calculated elapse time = " << disk.getDiskTimer() << " ms" << endl;
+    cout << "Calculated Disk I/Os = " << disk.getDiskIOs() << endl;
+	
 	yylex_destroy();
- }
+  }
  return 0;
 }
 

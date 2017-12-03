@@ -93,7 +93,7 @@ class block_manager
     }  
   }
   
-  bool process_select_in_memory(vector<string>& table_names , vector<string>& select_lists, string order_by_att, vector<pair<string,string>>& postfixExpression, char *d)
+  bool process_select_in_memory(vector<string>& table_names , vector<string>& select_lists, string order_by_att, vector<pair<string,string>>& postfixExpression, char *d, vector<vector<string>>& result)
   {
         vector<string> final_rel;
         Relation *relation_ptr = prepare_join(table_names, final_rel, select_lists, postfixExpression);
@@ -108,15 +108,15 @@ class block_manager
         int relation_size = relation_ptr->getNumOfBlocks();
         int mem_size = mem->getMemorySize();
         bool res;
-        vector<vector<string>> result;
+        //vector<vector<string>> result;
         
         if(mem_size >= relation_size)
         {
-            res = one_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression,d, result);
+            res = one_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression, result);
         }
         else
         {
-            res = two_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression,d, result);
+            res = two_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression, result);
         }
         
         if(final_rel[0] != table_names[0])
@@ -126,11 +126,13 @@ class block_manager
         
         if(res == false)
             return false;
-            
-        printSelect(result);
-        //cout<<*relation_ptr<<endl;
+        
+        if(d != '\0')    
+            result = getDistinct(result);
+        
+        //printSelect(result);
     
-    return true;
+        return true;
   }
   
   bool one_pass_sort(Schema schema, vector<Tuple>& tp, string order_by_att)
@@ -161,7 +163,7 @@ class block_manager
          return true;
   }
   
-  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, char *d, vector<vector<string>>& result)
+  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, vector<vector<string>>& result)
   {
       cout<<"One pass here "<<endl;
       int relation_size = relation_ptr->getNumOfBlocks();
@@ -170,71 +172,28 @@ class block_manager
       
       Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
       
-      /*if(d != '\0' && order_by_att.size() == 0)
+      if(order_by_att.size()>0)
       {
-          if(select_lists[0][1] == '*')
-          {
-              if(one_pass_sort(schema, tp, schema.getFieldName(0)) == false) 
+          string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
+          
+          if(schema.fieldNameExists(fields) == false)
                 return false;
-                  
-          }
-          else
-          {
-            if(one_pass_sort(schema, tp, select_lists[0]) == false) 
-                return false;
-          }
-          if(std::find(select_lists.begin(), select_lists.end(), order_by_att) != select_lists.end())
-      }*/
-      int sorted = 0;
-      if(d != '\0')
-      {
-            string fields = "";
-            if(order_by_att.size() > 0 && select_lists[0][1] == '*')
-            {
-                sorted = 1;
-                fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
-            }
-            else if(order_by_att.size() == 0 && select_lists[0][1] == '*')
-                fields = schema.getFieldName(0);
-            else
-            {
-                if(find(select_lists.begin(), select_lists.end(), order_by_att) != select_lists.end())
-                {
-                    sorted = 1;
-                    fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
-                }
-                else
-                    fields = select_lists[0].substr(select_lists[0].find(".")+1, select_lists[0].size()-1);
-            }
-            
-            if(schema.fieldNameExists(fields) == false)
-                return false;
-            
-            relation_ptr = two_pass_sort(relation_ptr, table_names, fields);
-      }
-      
-      if(order_by_att.size()>0 && sorted == 0)
-      {
-          if(one_pass_sort(schema, tp, order_by_att) == false) 
+          
+          if(one_pass_sort(schema, tp, fields) == false) 
               return false;
       }
       
+      cout<<*mem<<endl;
       //vector<vector<string>> result;
       for(int i = 0; i< tp.size(); i++)
       {
           vector<string> values;
           if(satisfies_condition(tp[i], table_names[0], postfixExpression) == true)
           {
-              if(i!=0)
-              {
-                if(project( tp[i], tp[i-1], table_names, select_lists, d, 1, values) == false)
+              
+              if(project( tp[i], table_names, select_lists, values) == false)
                     return false;
-              }
-              else
-              {
-                  if(project( tp[i], tp[i], table_names, select_lists, d, 0, values) == false)
-                    return false;
-              }
+              
               result.push_back(values);
           }
       }
@@ -432,17 +391,17 @@ class block_manager
   }
 
   
-  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, char *d, vector<vector<string>>& result)
+  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, vector<vector<string>>& result)
   {
         cout<<"Two pass here "<<endl;
         int mem_size = mem->getMemorySize();
         int relation_size = relation_ptr->getNumOfBlocks();
-        int sorted = 0;
+        //int sorted = 0;
         
         //cout<<"Tuple based select is here "<<relation_size<<"    "<<endl;
         Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
         std::cout << "sssssssssssssssschhhemeler" <<schema<< std::endl;
-        if(d != '\0')
+        /*if(d != '\0')
         {
             string fields = "";
             if(order_by_att.size() > 0 && select_lists[0][1] == '*')
@@ -463,9 +422,9 @@ class block_manager
                     fields = select_lists[0].substr(select_lists[0].find(".")+1, select_lists[0].size()-1);
             }
             relation_ptr = two_pass_sort(relation_ptr, table_names, fields);
-        }
+        }*/
         
-        if(order_by_att.size()>0 && sorted == 0)
+        if(order_by_att.size()>0)
         {
             string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
          
@@ -497,24 +456,17 @@ class block_manager
                 vector<string> values;
                 if(satisfies_condition(tp[j], table_names[0], postfixExpression) == true) //Check the tuple for where clause
                 {
-                    if(j!=0)
-                    {
-                        if(project( tp[j], tp[j-1], table_names, select_lists, d, 1, values) == false)
-                            return false;
-                    }
-                    else if(j == 0 && i == 0)
-                    {
-                        if(project( tp[j], tp[j], table_names, select_lists, d, 0, values) == false)
-                            return false;
-                    }
+                    if(project( tp[j], table_names, select_lists, values) == false)
+                        return false;
+                    
                     result.push_back(values);
                 }
             }
             
-            i = i + mem_size;
+            i = i + mem_size - 1;
         }
         
-        if(order_by_att.size() > 0 || d != '\0')    
+        if(order_by_att.size() > 0 )    
             schema_manager->deleteRelation("final_rel");
         
         return true;
@@ -1059,12 +1011,12 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       return temp_ptr;
   }
   
-  bool project(Tuple tp, Tuple tp_pr, vector<string>& table_names, vector<string>& select_lists, char *d, int flag, vector<string>& values)
+  bool project(Tuple tp, vector<string>& table_names, vector<string>& select_lists, vector<string>& values)
   {
       //cout<<"Projection/Printing: BEGIN:"<<endl;
       Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
       //int pr_flag = 0;
-      int nd_flag = 0;
+      //int nd_flag = 0;
         
       for(int i = 0; i < select_lists.size(); i++)
       {
@@ -1078,30 +1030,18 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
               {
                   enum FIELD_TYPE typ = schema.getFieldType(j);
                   string cc= "";
-                  string cc1= "";
           
                   if(typ == INT)
                   {
                       cc = to_string(tp.getField(j).integer);
-                      cc1 = to_string(tp_pr.getField(j).integer);
-                      
                   }
                   else
                   {
                       cc= *(tp.getField(j).str);
-                      cc1= *(tp_pr.getField(j).str);
-                  }
-                  
-                  if(cc != cc1)
-                  {
-                      nd_flag = 1;
                   }
               
                   values.push_back(cc);
               }
-              
-              if(flag == 0)
-                nd_flag = 1;
                 
               break;
           }
@@ -1111,37 +1051,58 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
           
           enum FIELD_TYPE typ = schema.getFieldType(fields);
           string cc= "";
-          string cc1= "";
           
           if(typ == INT)
           {
               cc = to_string(tp.getField(fields).integer);
-              cc1 = to_string(tp_pr.getField(fields).integer);
           }
           else
           {
-              cc1= *(tp_pr.getField(fields).str);
               cc= *(tp.getField(fields).str);
           }
           
-          if(cc != cc1)
-          {
-              //cout<<"nd here "<<cc<<"  and  "<<cc1<<endl;
-              nd_flag = 1;
-          }
           values.push_back(cc);
           }
       }
-      if(flag == 0)
-      {
-          //cout<<"nd here "<<endl;
-          nd_flag = 1;
-      }
-
-      if(nd_flag == 0 && d != '\0')
-            return true;
     
+      /*for(int i = 0; i < values.size(); i++)
+            {
+                cout<<values[i]<<"\t";
+            }
+            cout<<endl;*/
       return true;
+  }
+  
+  vector<vector<string>> getDistinct(vector<vector<string>> result)
+  {
+      cout<<"res is "<<result.size()<<endl;
+      int sz = result.size();
+      int printedd[sz];
+      vector<vector<string>> unique;
+      
+      for(int j = 0; j < sz; j++)
+      {
+            vector<string> values = result[j];
+            if(values.size() == 0)
+                continue;
+            if(printedd[j] == 1)
+                continue;
+                
+            unique.push_back(values);  
+            /*for(int i = 0; i < values.size(); i++)
+            {
+                cout<<values[i]<<"\t";
+            }
+            cout<<endl;*/
+            for(int i = j + 1; i < sz; i++)
+            {
+                if(result[i] == values)
+                {
+                    printedd[i] = 1;
+                }
+            }
+      }
+       return unique;
   }
   
   void printSelect(vector<vector<string>> result)
@@ -1150,6 +1111,8 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       for(int j = 0; j < result.size(); j++)
       {
             vector<string> values = result[j];
+            if(values.size() == 0)
+                continue;
             for(int i = 0; i < values.size(); i++)
             {
                 cout<<values[i]<<"\t";
