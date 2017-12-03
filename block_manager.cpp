@@ -730,6 +730,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
      
   }
   
+  /* returns the index (min, s_min) of smallest, and second smallest relations based on relation size*/
   void getMinTwo(vector<int> relation_size, int &min, int &s_min)
   {
       int tmin = INT_MAX;
@@ -754,12 +755,157 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       }
   }
   
+    struct expressionTree
+    {
+      string value;
+      string type;
+      expressionTree* leftChild;
+      expressionTree* rightChild;
+      expressionTree(){ leftChild = NULL; rightChild = NULL;}
+      
+    };
+    
+    static void formAClause (expressionTree* root, vector<pair<string,string>>& c)
+    {
+        if(root->leftChild)
+        {
+            formAClause(root->leftChild, c);
+        }
+        if(root->rightChild)
+        {
+            formAClause(root->rightChild, c);
+        }
+        c.push_back(make_pair(root->value, root->type));
+        delete root;
+    }
+    
+    static void postOrderTraversalExpressionTree(expressionTree* root, vector< vector<pair<string,string> > >& clauses)
+    {
+        if(root->leftChild)
+        {
+            if(root->leftChild->value == "AND")
+            {
+                postOrderTraversalExpressionTree(root->leftChild, clauses);
+                
+            }else
+            {
+                //we have a cluase starting this node
+                vector<pair<string,string>> clause;
+                formAClause(root->leftChild, clause);
+                clauses.push_back(clause);
+            }
+        }
+        if(root->rightChild)
+        {
+            if(root->rightChild->value == "AND")
+            {
+                postOrderTraversalExpressionTree(root->rightChild, clauses);
+                
+            }else
+            {
+                //we have a cluase starting this node
+                vector<pair<string,string>> clause;
+                formAClause(root->rightChild, clause);
+                clauses.push_back(clause);
+            }
+            
+        }
+    }
+  
   static bool satisfies_condition1(Tuple tp, string table_names, vector<string> field_name, vector<enum FIELD_TYPE> field_types, vector<pair<string,string>>& postfixExpression)
   {
+    //extract all the column attributes from postfixExpression, so that we can try to push the selections down
+    // vector<string> columnNamesInWhere;
+    
+        int n = postfixExpression.size();
+
+        if(n == 0 ) return true; //no where clause
+        
+        if(postfixExpression[n-1].first == "OR" || postfixExpression[n-1].first != "AND")//root of the search condition is an OR, we need to run the where clause only when all the columns used in where are available 
+        {
+            
+            for(int i = 0; i < postfixExpression.size(); i++)
+            {
+                if(postfixExpression[i].second == "COLUMN-NAME")
+                {
+                    //do we have this column presently in this tuple?
+                    if (find (field_name.begin(), field_name.end(), postfixExpression[i].first) == field_name.end())
+                    {
+                        //column is not present 
+                        return true;
+                    }
+                }
+            }
+            //all columns in where clause are present in the tuple. Evaluate the tuple now
+            return satisfies_condition(tp, table_names, postfixExpression);
+        }
+        else if (postfixExpression[n-1].first == "AND")
+        {
+            stack<expressionTree*> S;
+            //prepare a ANDTree to get all the cluases involved in AND
+            for(int i = 0; i < postfixExpression.size(); i++)
+            {
+                if (postfixExpression[i].second != "OPERATOR")
+                {
+                    expressionTree* e = new expressionTree;
+                    e->value = postfixExpression[i].first;
+                    e->type = postfixExpression[i].second;
+                    S.push(e);
+                }else 
+                {
+                    expressionTree* e = new expressionTree;
+                    e->value = postfixExpression[i].first;
+                    e->type = postfixExpression[i].second;
+                    expressionTree* right = S.top();
+                    S.pop();
+                    expressionTree* left = S.top();
+                    S.pop();
+                    e->leftChild = left;
+                    e->rightChild = right;
+                    S.push(e);
+                }
+            }
+            expressionTree* root = S.top();
+            //print expression tree
+            //work on expression tree
+            vector< vector< pair<string,string> > > clauses;
+            postOrderTraversalExpressionTree(root, clauses);
+            
+            // for(int i = 0; i<clauses.size() ;i++)
+            // {
+            //     cout<<"Clause "<<i+1<<endl;
+            //     for(int j = 0; j < clauses[i].size(); j++)
+            //     {
+            //         cout<<clauses[i][j].first<<", "<<clauses[i][j].second<<"||";
+            //     }
+            //     cout<<endl;
+            // }
+            
+            
+            //check of the current tuple has all the fields to satisfy any clause
+            for(int i = 0; i<clauses.size() ;i++)
+            {
+                    for(int j = 0; j < clauses[i].size(); j++)
+                    {
+                        if(clauses[i][j].second == "COLUMN-NAME")
+                        {
+                            //do we have this column presently in this tuple?
+                            if (find (field_name.begin(), field_name.end(), clauses[i][j].first) == field_name.end())
+                            {
+                                //column is not present 
+                                return true;
+                            }
+                        }
+                    }
+                    //all columns in where clause are present in the tuple. Evaluate the tuple now
+                    return satisfies_condition(tp, table_names, clauses[i]);
+            }
+        }
+    
       return true;
   }
   
-  //Performs join of multiple tables
+  //
   Relation* prepare_join(vector<string> table_namess, vector<string>& final_rel, vector<string>& select_lists, vector<pair<string,string>>& postfixExpression)
   {
       vector<string> table_names(table_namess);
@@ -776,6 +922,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       int s_min = -1;
       cout<<"prepare_join comes"<<endl;
       
+      /* Push relation pointers for all the tables in vector relation_ptr, and their corresponding sizes in vector relation_size */
       for(int i =0; i < table_names.size(); i++)
       {
             Relation* rl = schema_manager->getRelation(table_names[i]);
@@ -787,9 +934,9 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             relation_size.push_back(relation_ptr[i]->getNumOfBlocks());
       }
       
-      int sz =  table_names.size();
+      int sz =  table_names.size(); //number of tables in join
       Relation *final_rel_ptr;
-      for(int i =0; i < sz-1; i++)
+      for(int i =0; i < sz-1; i++) 
       {
           getMinTwo(relation_size, min, s_min);
           final_rel_ptr = join(table_names, relation_ptr, relation_size, min, s_min, i, postfixExpression);
