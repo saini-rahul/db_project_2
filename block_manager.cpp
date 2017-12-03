@@ -126,6 +126,8 @@ class block_manager
         if(res == false)
             return false;
             
+        //cout<<*relation_ptr<<endl;
+    }
     
     return true;
   }
@@ -231,6 +233,11 @@ class block_manager
       {
           if(one_pass_sort(schema, tp, order_by_att) == false) 
               return false;
+          if(satisfies_condition(tp[i], postfixExpression) == true)
+          {
+              if(project( tp[i], table_names, select_lists) == false)
+                return false;
+          }
       }
       
       return true;
@@ -521,63 +528,139 @@ class block_manager
 
 static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1, pair<string,string> p2, stack<pair<string,string>>& S )
 {
+    //p1's value is val2/strVal2; p2's value is val1/strVal1; since p1 is popped first, so it is on right of the operator 
     int val1, val2;
     string s,t;
+    int truthVal;
+    string truthValType; 
+    
     size_t found;
     Schema tuple_schema = tuple.getSchema();
-
+    string strVal1, strVal2;
     //p2<p1 return is a TRUTH VALUE
     if (p2.second == "LITERAL" || p1.second == "LITERAL")
-        return false;
-                                
-    if(p1.second == "COLUMN-NAME")
-    {
-         s = p1.first;
-         found = s.find('.');
-        //extract the column name 
-         t = s.substr(found+1);
-                                
-        if (tuple_schema.getFieldType(t) == INT) 
-            val1 = tuple.getField(t).integer;
-        else
-            return false;
-                                    //cout << tuple.getField(t).str << "\t";
-  
-    }else val1 = stoi(p1.first);
-                            
-    if(p2.second == "COLUMN-NAME")
-    {
-        s = p2.first;
-        found = s.find('.');
-        //extract the column name 
-        t = s.substr(found+1);
-                                
-        if (tuple_schema.getFieldType(t) == INT) 
-          val2 = tuple.getField(t).integer;
-        else
-            return false;
-                                    //cout << tuple.getField(t).str << "\t";
-  
-    }else val2 = stoi(p2.first);
-                            
-    //we have v1 and v2
-    //we will calculate the truth value and push it back to stack
-    int truthVal;
-    if (op == "<")
-        truthVal = (val2 < val1)?1:0;
-    if (op == ">")
-        truthVal = (val2 > val1)?1:0;
-    if (op == "=")
-        truthVal = (val2 == val1)?1:0;
-    if (op == "+")
-        truthVal = (val2 + val1);
-    if (op == "-")
-        truthVal = (val2 - val1);
-    if (op == "*")
-        truthVal = (val2 * val1);
-    
+    {//a LITERAL can be involved only in = operator, and the other being a literal or a string columns
+        if(p2.second == "LITERAL")
+        {
+            strVal1 = p2.first;
+            if(p1.second == "LITERAL" || p1.second == "COLUMN-NAME")
+            {
+                if(p1.second == "COLUMN-NAME")
+                {
+                    //extract the strig value of column
+                    s = p1.first;
+                    found = s.find('.');
+                    //extract the column name 
+                    t = s.substr(found+1);
+                                            
+                    if (tuple_schema.getFieldType(t) == INT) 
+                        return false;
+                    else
+                    {
+                        strVal2 = *(tuple.getField(t).str);
+                    }
+                        
+                }else{//p1.second == "LITERAL"
+                    strVal2 = p1.first;
+                }
+            }else return false;
+            
+        }else //p1.second == "LITERAL"
+        {
+            strVal2 = p1.first;
+            if(p2.second == "LITERAL" || p2.second == "COLUMN-NAME")
+            {
+                if(p2.second == "COLUMN-NAME")
+                {
+                    //extract the strig value of column
+                    s = p2.first;
+                    found = s.find('.');
+                    //extract the column name 
+                    t = s.substr(found+1);
+                                            
+                    if (tuple_schema.getFieldType(t) == INT) 
+                        return false;
+                    else
+                    {
+                        strVal1 = *(tuple.getField(t).str);
+                    }
+                        
+                }else{//p1.second == "LITERAL"
+                    strVal1 = p2.first;
+                }
+            }else return false;
+        }
         
-    S.push(make_pair(to_string(truthVal), "OP-VALUE"));
+        if(op != "=")  //Literals/ Columns with string type only work with equal operator
+            return false;
+        
+        if(strVal1 == strVal2)
+        {
+            truthVal = 1;
+        }
+        else
+        {
+            truthVal = 0;
+        }
+        truthValType = "TRUTH-VALUE";
+
+    }else{       //(p2.second <> "LITERAL" and p1.second <> "LITERAL")                    
+        if(p1.second == "COLUMN-NAME")
+        {
+             s = p1.first;
+             found = s.find('.');
+            //extract the column name 
+             t = s.substr(found+1);
+                                    
+            if (tuple_schema.getFieldType(t) == INT) 
+                val2 = tuple.getField(t).integer;
+            else
+                return false;
+                                        //cout << tuple.getField(t).str << "\t";
+      
+        }else val2 = stoi(p1.first);
+                                
+        if(p2.second == "COLUMN-NAME")
+        {
+            s = p2.first;
+            found = s.find('.');
+            //extract the column name 
+            t = s.substr(found+1);
+                                    
+            if (tuple_schema.getFieldType(t) == INT) 
+              val1 = tuple.getField(t).integer;
+            else
+                return false;
+                                        //cout << tuple.getField(t).str << "\t";
+      
+        }else val1 = stoi(p2.first);
+                                
+        //we have v1 and v2
+        //we will calculate the truth value and push it back to stack
+        truthValType = "TRUTH-VALUE";
+        if (op == "<")
+            truthVal = (val1 < val2)?1:0;
+        if (op == ">")
+            truthVal = (val1 > val2)?1:0;
+        if (op == "=")
+            truthVal = (val1 == val2)?1:0;
+        if (op == "+")
+        {
+            truthVal = (val1 + val2);
+            truthValType = "OP-VALUE";
+        }
+        if (op == "-")
+        {
+            truthVal = (val1 - val2);
+            truthValType = "OP-VALUE";
+        }
+        if (op == "*")
+        {    
+            truthVal = (val1 * val2);
+            truthValType = "OP-VALUE";
+        }
+    }     
+    S.push(make_pair(to_string(truthVal), truthValType ));
     return true;
   }
   
@@ -585,6 +668,11 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
   {
       if(postfixExpression.size() == 0) return true; //if there is no where clause, all tuples satisfy
       stack<pair<string,string>> S;
+      /*
+        1/0 TRUTH-VALUE
+        Integer OP-VALUE
+      
+      */
     //   int fail_flag = 0;
       //evaluate postfix expression 
       for(int i =0; i<postfixExpression.size(); i++)
@@ -601,19 +689,47 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
                         pair<string,string> p2 = S.top();
                         S.pop();
                         
-                        // if ( postfixExpression[i].first ==  "OR")
-                        // {
-                        //     //p1 and p2 have to be truth values and if either is 1 we return a truth value of 1
-                        // }else if (postfixExpression[i].first ==  "AND") 
-                        // {
+                        if ( postfixExpression[i].first ==  "OR")
+                        {
+                            if(p1.second != "TRUTH-VALUE" || p2.second != "TRUTH-VALUE")
+                            {
+                                return false;
+                            }else //both operands of OR are truth values
+                            {
+                                //if either is 1 push 1, else push 0
+                                if(p1.first == "1" || p2.first == "1")
+                                    S.push(make_pair("1", "TRUTH-VALUE" ));
+                                else
+                                    S.push(make_pair("0", "TRUTH-VALUE" ));
+                            }
+                        }else if (postfixExpression[i].first ==  "AND") 
+                        {
+                            if(p1.second != "TRUTH-VALUE" || p2.second != "TRUTH-VALUE")
+                            {
+                                return false;
+                            }else //both operands of AND are truth values
+                            {
+                                //if both are 1 push 1, else push 0
+                                if(p1.first == "1" && p2.first == "1")
+                                    S.push(make_pair("1", "TRUTH-VALUE" ));
+                                else
+                                    S.push(make_pair("0", "TRUTH-VALUE" ));
+                            }
                             
-                        // }else 
-                        if (postfixExpression[i].first ==  "<" || postfixExpression[i].first ==  ">" || postfixExpression[i].first ==  "=" || postfixExpression[i].first ==  "+" ||postfixExpression[i].first ==  "-"||postfixExpression[i].first ==  "*" )
+                        }else 
+                        if (postfixExpression[i].first ==  "<" || postfixExpression[i].first ==  ">" || postfixExpression[i].first ==  "+" ||postfixExpression[i].first ==  "-"||postfixExpression[i].first ==  "*" || postfixExpression[i].first ==  "=")
                         {
                             bool flag = processTupleOperator(tp,postfixExpression[i].first,p1, p2,S );
                             if (flag == false)
                                 return false;
-                        } 
+                        }
+                        // else 
+                        // if (postfixExpression[i].first ==  "=")
+                        // {
+                        //     if(p1.second == "LITERAL" || p2.second == "LITERAL" ){
+                        //         processTupleLiteral(tp,postfixExpression[i].first,p1, p2,S);
+                        //     }
+                        // }
                     }
                     
       }
@@ -864,6 +980,7 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
   
   bool project(Tuple tp, Tuple tp_pr, vector<string>& table_names, vector<string>& select_lists, char *d, int flag)
   {
+      cout<<"Projection/Printing: BEGIN:"<<endl;
       vector<string> values;
       Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
       //int pr_flag = 0;
@@ -949,6 +1066,7 @@ static bool  processTupleOperator(Tuple tuple, string op, pair<string,string> p1
           cout<<values[i]<<"\t";
       }
       cout<<endl;
+
       return true;
   }
   
