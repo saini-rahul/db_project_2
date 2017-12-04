@@ -137,7 +137,7 @@ class block_manager
   
   bool one_pass_sort(Schema schema, vector<Tuple>& tp, string order_by_att)
   {
-         string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
+         string fields = order_by_att;
          std::cout << "field name is " << fields<<" are  "<<order_by_att<<std::endl;
          
         
@@ -174,7 +174,11 @@ class block_manager
       
       if(order_by_att.size()>0)
       {
-          string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
+          string fields = "";
+          if(table_names[0].find("temp") != 0)
+                fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
+            else
+                fields = order_by_att;
           
           if(schema.fieldNameExists(fields) == false)
                 return false;
@@ -212,13 +216,13 @@ class block_manager
       }
   }
   
-  Relation *two_pass_sort(Relation *relation_ptr, vector<string>& table_names, string fields)
+  Relation *two_pass_sort(Relation *relation_ptr, string& table_names, string fields)
   {
          //string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
          //std::cout << "field name is " << fields<<" are  "<<order_by_att<<std::endl;
-         Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
+         Schema schema = schema_manager->getRelation(table_names)->getSchema();
          Relation *temp_ptr = schema_manager->createRelation("sublist_rel", schema);
-         Relation *curr_ptr = schema_manager->createRelation("final_rel", schema);
+         Relation *curr_ptr = schema_manager->createRelation(table_names+"_final_rel", schema);
          
          int mem_size = mem->getMemorySize();
          int relation_size = relation_ptr->getNumOfBlocks();
@@ -237,16 +241,16 @@ class block_manager
          else
             cc= "STR20";
             
-         cout<<*relation_ptr<<endl;
-         int read_blocks_no = mem_size;
+         //cout<<*relation_ptr<<endl;
+         int read_blocks_no = mem_size - 1;
          int no_part = 0;
          int rest_tp = 0;
          for(int i = 0; i < relation_size;)
          {
-            if((i+ mem_size) < relation_size)
+            if((i+ mem_size - 1) < relation_size)
             {
-                read_blocks_no = mem_size;
-                relation_ptr->getBlocks(i, 0, mem_size);
+                read_blocks_no = mem_size - 1;
+                relation_ptr->getBlocks(i, 0, mem_size - 1);
             }
             else
             {
@@ -261,40 +265,46 @@ class block_manager
             mem->setTuples(0, tp);
             temp_ptr->setBlocks(i,0 , read_blocks_no);
             tp.clear();
-            i = i + mem_size;
+            
+            i = i + mem_size - 1;
             no_part++;
+            
          }
-         
+         read_blocks_no = mem_size - 1;
          int tp_bl = schema.getTuplesPerBlock();
          int count_arr[no_part];
          int count_bl[no_part];
          int exh[no_part];
-         
+         //cout<<*temp_ptr<<endl;
+         cout<<"no partitions   "<<no_part<<endl;
          clearMM();
          int j = 0;
          for(int i = 0; i < no_part; i++)
          {
              count_arr[i] = 0;
-             count_bl[i] = 0;
+             count_bl[i] = 1;
              exh[i] = 0;
              temp_ptr->getBlock(j, i);
-             j = j + mem_size;
+             j = j + mem_size - 1;
+             //cout<<"lllllllllllllllllllllllllll"<<"  "<<i<<"    "<<j<<endl;
          }
+         //cout<<*mem<<endl;
          
+         cout<<"it si ssssssssss  "<<no_part<<"  rel size "<<relation_size<<"type is "<<cc<<endl;
          vector<Tuple> tp = mem->getTuples(0, no_part);
          int sorted_count = 0;
          string str1 = "";
          int int_val = INT_MIN;
          
-         //cout<<"I want this "<<endl;
-         //cout<< *mem <<endl;
-         
          int no_tp = schema.getTuplesPerBlock();
          Block *bl = mem->getBlock(mem_size - 1);
          int bl_count = 0;
          
-         while(sorted_count != relation_size)
+         cout<<"noooooopartition issssssssssssssssssssss"<<no_part<<endl;
+         
+         while(sorted_count < relation_size)
          {
+            cout<<"aaaaaaaaaaaaaaaaaaaaaaaaaa "<<endl;
             int i=0;
             int min = INT_MAX;
             string minStr = "";
@@ -304,23 +314,28 @@ class block_manager
             {
                 for(i = 0; i < no_part; i++)
                 {
-                    //cout<<"aaa"<<endl;
+                    if(exh[i] == 1)
+                        continue;
                     int temp = tp[i*no_tp + count_arr[i]].getField(fields).integer;
-                    //cout<<"bb"<<endl;
-                    if(temp < min && exh[i] != 1)
+                    
+                    
+                    if(temp < min)
                     {
                         min = temp;
                         min_pos = i;
                     }
-                    //cout<<"ccc"<<endl;
-                }    
+                }
+                
             }
             else
             {
-                minStr = *(tp[i*no_tp + count_arr[0]].getField(fields).str);
-                min_pos = 0;
-                for(i = 0; i < no_part && count_bl[i] < mem_size; i++)
+                minStr = "zzzzzzzzzzzzzzzzzzzz";
+                min_pos = -1;
+                for(i = 0; i < no_part; i++)
                 {
+                    if(exh[i] == 1)
+                        continue;
+                    
                     string temp = *(tp[i*no_tp + count_arr[0]].getField(fields).str);
                     if(temp < minStr)
                     {
@@ -330,68 +345,80 @@ class block_manager
                 }
             }
             
-            //cout<<"minnnnnnnnnnnnn issssssssssssssss  "<<min<<endl;
-            
+            cout<<"bbbbbbbbbbbbbbbbbbbbbbbbbb  "<<minStr<<"from  "<<min_pos<<endl;
             if(!bl->isFull() && bl_count < no_tp)
             {
-                //cout<<"ddd"<<endl;
-                bl->appendTuple(tp[min_pos*no_tp + count_arr[0]]);
-                bl_count ++;
-                //cout<<"eeee"<<endl;
-                //cout<<"cccccccccccccccccccccc"<<*bl<<endl;
-            }
-            else
-            {
-                bl_count = 0;
-                //cout<<"fff"<<endl;
-                //cout<<"fffffffffffffffffffffff ss cnt  "<<*bl<<endl;
-                curr_ptr->setBlock(sorted_count, mem_size - 1);
-                //cout<<"ggg"<<endl;
-                sorted_count ++;
-                bl->clear();
-                bl->appendTuple(tp[min_pos*no_tp + count_arr[0]]);
-                //cout<<"hhh"<<endl;
-                bl_count ++;
-            }
-            
-            count_arr[min_pos]++;
-            if(count_arr[min_pos] == no_tp )
-            {
-                
-                count_bl[min_pos] ++;
-                //cout<<"iii"<<count_bl[min_pos]<<endl;
-                if(count_bl[min_pos] >= mem_size || (min_pos == (no_part - 1) && count_arr[min_pos] >= rest_tp))
+                cout<<"in iffffffffffffffffffffff"<<endl;
+                if(min_pos != -1)
                 {
-                    exh[min_pos] = 1;
-                        
-                    //cout<<"kkkk"<<endl;
-                    
+                    bl->appendTuple(tp[min_pos*no_tp + count_arr[min_pos]]);
                 }
                 else
                 {
-                    //cout<<"lll"<<endl;
-                    temp_ptr->getBlock(min_pos*mem_size + count_bl[min_pos], min_pos);
+                    curr_ptr->setBlock(sorted_count, mem_size - 1);
+                }
+                bl_count ++;
+            }
+            else
+            {
+                //cout<<"in elseeeeeeeeeeeeeeeeeeeeeeeeee"<<endl;
+                bl_count = 0;
+                curr_ptr->setBlock(sorted_count, mem_size - 1);
+                sorted_count ++;
+                bl->clear();
+                //cout<<"in ssssssssssssss"<<endl;
+                int pos = min_pos*no_tp + count_arr[min_pos];
+                
+                if(min_pos != -1 && pos >= 0)
+                    bl->appendTuple(tp[min_pos*no_tp + count_arr[min_pos]]);
+                
+                //cout<<"in errorrrrrrrrrrrrr   "<<min_pos<<"  and  "<<min<<endl;
+                bl_count ++;
+            }
+            
+            cout<<"ccccccccccccccccccccccccccccc"<<endl;
+            count_arr[min_pos]++;
+            if(count_arr[min_pos] == no_tp )
+            {
+                count_bl[min_pos] ++;
+                int aa = min_pos*(mem_size - 1) + count_bl[min_pos] - 1;
+                cout<<"lllllllllllllllllllllllllll  "<<minStr<<"   "<<min_pos<<"    "<<aa<<endl;
+                
+                if(count_bl[min_pos] > mem_size - 1)
+                {
+                    exh[min_pos] = 1;
+                    cout<<"exhaissf   ooooooo   "<<min_pos<<endl;
+                }
+                else if(min_pos == (no_part - 1) && count_bl[min_pos] > rest_tp)
+                {
+                    cout<<"exhaissf   ooooooo   "<<min_pos<<endl;
+                    if(count_bl[min_pos] > rest_tp)
+                    {
+                        exh[min_pos] = 1;
+                    }
+                }
+                else
+                {
+                    //cout<<"lllllllllllllllllllllllllll  "<<min<<"   "<<min_pos<<"    "<<aa<<endl;
+                    temp_ptr->getBlock(aa, min_pos);
+                    
                     tp.clear();
                     tp = mem->getTuples(0, no_part);
-                    //cout<<"mmm"<<endl;
                 }
                 count_arr[min_pos] = 0;
-                
-                
-                //cout<<"nnnn"<<endl;
             }
             
             cout<<sorted_count<<endl;
-            //cout<<"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"<<sorted_count<<endl;
-            
          }
          cout<<*curr_ptr<<endl;
+         int sss = curr_ptr->getNumOfBlocks();
          schema_manager->deleteRelation("sublist_rel");
+         table_names = table_names+"_final_rel";
          return curr_ptr;
   }
 
   
-  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, vector<vector<string>>& result)
+  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string>& table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, vector<vector<string>>& result)
   {
         cout<<"Two pass here "<<endl;
         int mem_size = mem->getMemorySize();
@@ -426,15 +453,19 @@ class block_manager
         
         if(order_by_att.size()>0)
         {
-            string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
+            string fields = "";
+            if(table_names[0].find("temp") != 0)
+                fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
+            else
+                fields = order_by_att;
          
             if(schema.fieldNameExists(fields) == false)
                 return false;
         
-            relation_ptr = two_pass_sort(relation_ptr, table_names, fields);
+            relation_ptr = two_pass_sort(relation_ptr, table_names[0], fields);
         }
-        
-        //cout<<"fffffffffffffffffffff"<<endl;
+        relation_size = relation_ptr->getNumOfBlocks();
+        cout<<"rel sizeeeeeeeeeeeeeeeee   "<<relation_size;
         int read_blocks_no = mem_size;
         for(int i = 0; i < relation_size;)
         {
@@ -463,11 +494,13 @@ class block_manager
                 }
             }
             
-            i = i + mem_size - 1;
+            i = i + mem_size;
         }
         
+        cout<<"table now is"<<table_names[0]<<endl;
+        
         if(order_by_att.size() > 0 )    
-            schema_manager->deleteRelation("final_rel");
+            schema_manager->deleteRelation(table_names[0]);
         
         return true;
 }
@@ -958,16 +991,31 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       return final_rel_ptr;
   }
   
+  void getJoinAttributes(vector<string>&& ss)
+  {
+      ss.push_back("sid");
+      ss.push_back("sid");
+  }
   //Joins two current minimum tables and create a temporary relation
   //Performs both one pass and two pass join
   Relation* join(vector<string>& table_names, vector<Relation*>& relation_ptr, vector<int>& relation_size, int min, int s_min, int itr, vector<pair<string,string>>& postfixExpression)
   {
       vector<string> values;
+      string table_name1 = table_names[min];
+      string table_name2 = table_names[s_min];
+      relation_ptr[min] = two_pass_sort(relation_ptr[min], table_names[min], "sid");
+      relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], table_names[s_min], "sid");
+      cout<<"table name min "<<table_names[min]<<endl;
+      cout<<"table name min "<<table_names[s_min]<<endl;
+      cout<<*relation_ptr[min]<<endl;
+      cout<<*relation_ptr[s_min]<<endl;
+      
       Schema schema1 = schema_manager->getRelation(table_names[min])->getSchema();
       Schema schema2 = schema_manager->getRelation(table_names[s_min])->getSchema();
       vector<string> field_name = schema1.getFieldNames();
       vector<enum FIELD_TYPE> field_types = schema1.getFieldTypes();
       
+    
       vector<string> field_name1;
       vector<enum FIELD_TYPE> field_types1;
       
@@ -976,13 +1024,14 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       int no_fields1 = schema1.getNumOfFields();
       int no_fields2 = schema2.getNumOfFields();
       cout<<"join comes "<<endl;
+      int max_lar = INT_MIN;
+      int min_lar = INT_MAX;
       
       for(int i =0; i < no_fields1; i++)
       {
-          
           if(table_names[min].find("temp") != 0)
           {
-            field_name[i] = table_names[min]+"."+field_name[i];
+            field_name[i] = table_name1+"."+field_name[i];
           }
           
           field_name1.push_back(field_name[i]);
@@ -993,7 +1042,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       {
           if(table_names[s_min].find("temp") != 0)
           {
-              field_name2[i] = table_names[s_min]+"."+field_name2[i];
+              field_name2[i] = table_name2 + "."+field_name2[i];
           }
           
           field_name1.push_back(field_name2[i]);
@@ -1026,11 +1075,42 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
               {
                 relation_ptr[s_min]->getBlocks(rl, relation_size[min], 1);
                 vector<Tuple> tp2 = mem->getTuples(relation_size[min], 1);
+                
                 for(int j = 0; j < tp2.size(); j++)
                 {
-                    if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
+                    int sid1 = tp1[i].getField("sid").integer;
+                    int sid2 = tp2[j].getField("sid").integer;
+                    if(i == 0)
                     {
-                        continue;
+                        cout<<"max "<<max_lar<<" min "<<min_lar<<"  sid "<<sid2<<endl;
+                        if(sid2 > max_lar)
+                        {
+                            max_lar = sid2;
+                        }
+                        
+                        if(sid2 < min_lar)
+                        {
+                            min_lar = sid2;
+                        }
+                    }
+                    else
+                    {
+                        if(sid1 > max_lar)
+                            break;
+                        if(sid1 < min_lar)
+                            break;
+
+                        if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
+                        {
+                            cout<<"breakkkk"<<endl;
+                            break;
+                        }
+                    
+                        if(tp1[i].getField("sid").integer < tp2[j].getField("sid").integer)
+                        {
+                            cout<<"not breakkkk"<<endl;
+                            break;
+                        }
                     }
                     
                     Tuple tuple = temp_ptr->createTuple();
@@ -1061,7 +1141,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                         }
                         k++;
                     }
-                    //cout<<tuple<<endl;
+                    cout<<tuple<<endl;
                     if(satisfies_condition1(tuple, relation_name, field_name1, field_types1,postfixExpression) == true)
                     {
                         appendTupleToRelation(temp_ptr, relation_size[min]+1, tuple);
@@ -1069,8 +1149,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 }
               }
           }
-          
-          cout<<*temp_ptr<<endl;
       }
       else
       {
@@ -1078,6 +1156,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
         int read_blocks_no = -1;
         for(int i = 0; i < relation_size[min];)
         {
+            cout<<"sss"<<endl;
             if((i+ mem_size-2) < relation_size[min])
             {
                 read_blocks_no = mem_size-2;
@@ -1088,7 +1167,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 read_blocks_no = relation_size[min] - i;
                 relation_ptr[min]->getBlocks(i, 0 , read_blocks_no);
             }
-
+            cout<<"bbb"<<endl;
             vector<Tuple> tp1 = mem->getTuples(0, read_blocks_no);
             for(int m = 0; m < tp1.size(); m++)
             {
@@ -1096,12 +1175,54 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
               {
                 relation_ptr[s_min]->getBlocks(rl, read_blocks_no, 1);
                 vector<Tuple> tp2 = mem->getTuples(read_blocks_no, 1);
+                //cout<<"cccc"<<endl;
+                int flag = 0;
                 for(int j = 0; j < tp2.size(); j++)
                 {
+                    int sid1 = tp1[m].getField("sid").integer;
+                    int sid2 = tp2[j].getField("sid").integer;
+                    
+                    if(i == 0 && m == 0)
+                    {
+                        cout<<"max "<<max_lar<<" min "<<min_lar<<"  sid "<<sid2<<endl;
+                        if(sid2 > max_lar)
+                        {
+                            max_lar = sid2;
+                        }
+                        
+                        if(sid2 < min_lar)
+                        {
+                            min_lar = sid2;
+                        }
+                    }
+                    else
+                    {
+                        
+                        if(sid1 > max_lar)
+                            break;
+                        if(sid1 < min_lar)
+                            break;
+                    
+                        if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
+                        {
+                            break;
+                        }
+                    
+                        if(sid1 < sid2)
+                        {
+                            //cout<<"breakkkk"<<endl;
+                            flag = 1;
+                            break;
+                        }
+                    }
+                    
                     Tuple tuple = temp_ptr->createTuple();
+                    
                     int k =0;
+                    
                     for(int l =0; l < no_fields1; l++)
                     {
+                        //cout<<"ammmm "<<l<<endl;
                         if(field_types1[k] == INT)
                         {
                             tuple.setField(k, tp1[m].getField(l).integer);
@@ -1110,9 +1231,11 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                         {
                             tuple.setField(k, *(tp1[m].getField(l).str));
                         }
+                        //cout<<"ammmm f"<<l<<endl;
                         k++;
                     }
                     
+                    //cout<<"ammmm  1"<<endl;
                     for(int l =0; l < no_fields2; l++)
                     {
                         
@@ -1126,15 +1249,21 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                         }
                         k++;
                     }
+                    //cout<<"ammmm  2"<<endl;
                     //cout<<tuple<<endl;
                     appendTupleToRelation(temp_ptr, read_blocks_no+1, tuple);
                 }
+                //cout<<"dddd"<<endl;
+                if(flag == 1)
+                    break;
+                
               }
             }
             
             i = i + mem_size - 2;
         }
-        cout<<*temp_ptr<<endl;
+        //cout<<"outside"<<endl;
+        //cout<<*temp_ptr<<endl;
       }
       
       swap(relation_ptr[min], relation_ptr.back());
@@ -1267,6 +1396,63 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             cout<<endl;
       }
       
+  }
+  
+  bool processDeleteStatement(string table_name, vector<pair<string,string>>& postfixExpression) 
+  {
+    //std::string tableName = root->children[2]->value;
+    Relation* relation_ptr = schema_manager->getRelation(table_name);
+
+    if(relation_ptr == '\0')
+        return false;
+        
+    if(postfixExpression.size() == 0) 
+    {
+        relation_ptr->deleteBlocks(0);
+        return true;
+    }
+
+    //cout<<*relation_ptr<<endl;
+    Block* out_block = mem->getBlock(1);
+    out_block->clear();
+
+    int writeBlockIndex = 0;
+    int size = relation_ptr->getNumOfBlocks();
+    
+    for (int i = 0; i < size; ++i) 
+    {
+        relation_ptr->getBlock(i, 0);
+        Block* block = mem->getBlock(0);
+        vector<Tuple> tuples = block->getTuples();
+        for (int j = 0; j < tuples.size(); ++j) 
+        {
+            if (satisfies_condition(tuples[j], table_name, postfixExpression) == false) 
+            {
+                if(out_block-> isFull()) 
+                {
+                    relation_ptr->setBlock(writeBlockIndex, 1);
+                    out_block->clear();
+                    out_block->appendTuple(tuples[j]);
+                    writeBlockIndex++;
+                }
+                else
+                {
+                    out_block->appendTuple(tuples[j]);
+                }
+            }
+        }
+    }
+
+    if (!out_block->isEmpty()) 
+    {
+      relation_ptr->setBlock(writeBlockIndex, 1);
+      out_block->clear();
+      writeBlockIndex++;
+    }
+
+    relation_ptr->deleteBlocks(writeBlockIndex);
+    cout<<"fucjkkkk"<<writeBlockIndex<<"ssss"<<*relation_ptr<<endl;
+    return true;
   }
   
   

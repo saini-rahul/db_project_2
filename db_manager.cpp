@@ -22,6 +22,50 @@ bool db_manager::process_statement(Statement_list *root)
         printSelect(result);
         return true;
     }
+    else if(root->st->dl_st != '\0')
+    {
+        return process_delete_statement(root->st->dl_st);
+    }
+}
+
+bool db_manager::process_delete_statement(Delete_statement *dl_st)
+{
+    vector< pair<string,string> > postfixExpression;    
+    /* Convert the search condition to a postfix vector of strings, if it exists */
+    if(dl_st->sr_cn != '\0'){
+        /* OR OPERATOR 
+           AND OPERATOR 
+           < OPERATOR
+           > OPERATOR
+           = OPERATOR
+           + OPERATOR
+           - OPERATOR
+           * OPERATOR
+           
+           OPERANDS
+           C COLUMN-NAME
+           L LITERAL
+           I INTEGER
+           
+            1/0 TRUTH-VALUE
+            Integer OP-VALUE
+           
+        */
+        vector<string> table_name;
+        table_name.push_back(dl_st->tb_nm->nm);
+        if (!process_search_condition(dl_st->sr_cn, postfixExpression, table_name)){ 
+            cout<<"Process Search Condition Failed."<<endl;
+            return false;
+        }
+        else{
+                cout<<"We have a valid postfixExpression. Printing the expression: "<<endl;
+                for(int i =0; i<postfixExpression.size(); i++){
+                    cout<<postfixExpression[i].first<<", "<<postfixExpression[i].second<<" || ";
+                }
+                cout<<endl;
+            }
+    }
+    return bl_mg->processDeleteStatement(dl_st->tb_nm->nm, postfixExpression);
 }
 
 void db_manager::printSelect(vector<vector<string>> result)

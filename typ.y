@@ -307,6 +307,7 @@ int main()
 	yyparse();
 	start_time=clock();
 	disk.resetDiskTimer();
+	disk.resetDiskIOs();
 	if(root != '\0')
 	    root -> printFunc();
 	

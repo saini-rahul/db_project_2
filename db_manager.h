@@ -46,6 +46,8 @@ class db_manager{
 
         bool process_select_list(Select_sublist *, vector<string>& , vector<string>& );
         string process_column_name(Column_name *, vector<string>& );
+        
+        bool process_delete_statement(Delete_statement *dl_st);
 
 };
 
