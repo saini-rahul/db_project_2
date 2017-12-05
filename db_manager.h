@@ -8,6 +8,7 @@
 
 using namespace std;
 
+//Process all queries. Process SELECT, CREATE, DELETE, DROP, INSERT queries
 class db_manager{
     private:
         MainMemory *mem;

@@ -2,7 +2,10 @@
 #include <stdio.h>
 #include "typ.h"
 #include "y.tab.h"
+
+//Given sentences are splitted into tokens and send to typ.y for grammer check
 %}
+
 
 %%
 
@@ -70,7 +73,6 @@ return LITERAL;
 
 [a-zA-Z][a-zA-Z0-9]* { 
 yylval.sttr = (char *)yytext;
-cout<<"here is "<<yylval.sttr<<endl;
 return NAME; }
 
 [0-9]+ { yylval.d=atoi(yytext);

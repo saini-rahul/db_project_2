@@ -8,6 +8,7 @@ int yylex(void);
 Statement_list *root;
 void yyerror(const char *s);
 
+//Grammer rules for tiny SQL are written
 %}
 
 %union{
@@ -290,6 +291,8 @@ $$= new Data_type(n);
 
 
 %%
+
+// Main function of the program
 int main()
 {
  MainMemory mem;
@@ -298,23 +301,16 @@ int main()
  
  disk.resetDiskIOs();
  disk.resetDiskTimer();
-
- // Another way to time
- clock_t start_time;
  
  while(1)
  {
 	yyparse();
-	start_time=clock();
 	disk.resetDiskTimer();
 	disk.resetDiskIOs();
-	if(root != '\0')
-	    root -> printFunc();
-	
+
 	string result = dbManager.process_statement(root) == 0? "FAILURE" : "SUCCESS";  
 	cout<<result<<endl;
 	
-	cout << "Real elapse time = " << ((double)(clock()-start_time)/CLOCKS_PER_SEC*1000) << " ms" << endl;
     cout << "Calculated elapse time = " << disk.getDiskTimer() << " ms" << endl;
     cout << "Calculated Disk I/Os = " << disk.getDiskIOs() << endl;
 	

@@ -7,6 +7,8 @@
 
 using namespace std;
 
+
+//Classes created according to grammer rules to form a parse tree
 class Node
 {
 	public:	
@@ -49,10 +51,6 @@ class Table_name{
 public:	
 	char *nm;
 	Table_name(char *nm);
-	void printFunc()
-	{
-		std::cout << "in tbnnn" <<nm<< std::endl;
-	}
 };
 
 class Attribute_name{
@@ -65,11 +63,9 @@ class Column_name{
 public:
 	Table_name *tb_nm;
 	Attribute_name *at_nm;
-	//Column_name *cl_nm;
 
 	Column_name(Attribute_name *at_nm);
 	Column_name(Table_name *tb_nm, Attribute_name *at_nm );
-	//Column_name(Table_name *tb_nm, Column_name *cl_nm );
 };
 
 class Attribute_list{
@@ -147,10 +143,6 @@ public:
 	Attribute_type_list *at_tp_ls;
 
 	Create_statement(Table_name *tb_nm, Attribute_type_list *at_tp_ls);
-	void printFunc()
-	{
-		tb_nm->printFunc();
-	}
 
 };
 
@@ -264,11 +256,7 @@ public:
 
 	Statement_list(Statement *st, Statement_list *st_ls);
 	Statement_list(Statement *st);
-	void printFunc()
-	{
-		//st->printFunc();
-		cout<<"printttttt"<<'\n';
-	}
+
 };
 
 #endif

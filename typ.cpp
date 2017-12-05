@@ -1,11 +1,11 @@
 #include "typ.h"
 
+
+//Classes created according to grammer rules to form a parse tree
 Data_type::Data_type(char *tp)
 {
-	//this-> tp= tp;
 	this->tp= new char[40];
 	strcpy(this->tp, tp);
-	cout<<"type "<<this->tp<<"\n";
 }
 
 
@@ -13,14 +13,12 @@ Value::Value(int int_num)
 {
 	this-> nm='\0';
 	this->int_num= int_num;
-	cout<<"value "<<this->int_num<<"\n";
 }
 Value::Value(char *nm)
 {
 	int_num= INT_MAX;
 	this->nm= new char[40];
 	strcpy(this->nm, nm);
-	cout<<"val  "<<nm<<"\n";
 }
 
 Value_list::Value_list(Value *vl)
@@ -33,50 +31,35 @@ Value_list::Value_list(Value *vl, Value_list *vl_ls)
 	this->vl= vl;
 	this-> vl_ls= vl_ls;
 }
-/*Select_list::Select_list(Attribute_list *at_ls)
-{
-	this->at_ls= at_ls;
-}*/
 
 Comp_op::Comp_op(char op)
 {
 	this-> op= op;
-	cout<<"op  |"<<op<<"|\n";
 }
 
 Table_name::Table_name(char *nm)
 {
-	cout<<"gete 1"<<nm<<endl;
 	this->nm= new char[40];
 	int i=0;
 	for(i=0; nm[i]!= '\0'; i++)
 	{
 		if(!isalnum(nm[i]))
 		{
-			//this-> nm[i]= '\0';
 			break;
-			//this->nm[i]= nm[i];
 		}
 		this-> nm[i]=nm[i];
 	}
 	this-> nm[i] = 0;
-	//strcpy(this->nm, nm);
-	cout<<"TABLE  "<<this->nm<<"\n";
 }
 
 Attribute_name::Attribute_name(char *nm)
 {
-	/*this->nm= new char[40];
-		
-	strcpy(this->nm, nm);
-	cout<<"ATT  "<<this->nm<<"\n";*/
 	this->nm= new char[40];
 	int i = 0;
 	for(i=0; nm[i]!= '\0'; i++)
 	{
 		if(!isalnum(nm[i]))
 		{
-			//this-> nm[i]= '\0';
 			break;
 		}
 		if(nm[i]==' ')
@@ -96,13 +79,7 @@ Attribute_name::Attribute_name(char *nm)
 		this->nm[i]= nm[i];
 	}
 	this->nm[i] = '\0';
-	cout<<"ATT  NMMMMMMM    "<<nm<<"\n";
-	cout<<"ATT  "<<this->nm<<"\n";
-
-
 }
-
-
 
 Column_name::Column_name(Attribute_name *at_nm)
 {
@@ -113,30 +90,18 @@ Column_name::Column_name(Table_name *tb_nm, Attribute_name *at_nm )
 {
 	this->tb_nm= tb_nm;
 	this->at_nm= at_nm;
-	//cout<<tb_nm<<" aa "<<at_nm<<"  ";
-
 }
-
-/*Column_name::Column_name(Table_name *tb_nm, Column_name *cl_nm )
-{
-	this->tb_nm= tb_nm;
-	this->cl_nm= cl_nm;
-	//cout<<tb_nm<<" aa "<<at_nm<<"  ";
-
-}*/
 
 
 Attribute_list::Attribute_list(Attribute_name *at_nm)
 {
 	at_ls= '\0';
 	this->at_nm= at_nm;
-	//cout<<at_nm<<"  ";
 }
 Attribute_list::Attribute_list(Attribute_name *at_nm, Attribute_list *at_ls)
 {
 	this->at_ls= at_ls;
 	this->at_nm= at_nm;
-	//cout<<at_nm<<"  ";
 }
 
 Term::Term(int int_num)
@@ -144,7 +109,6 @@ Term::Term(int int_num)
 	nm='\0';
 	this->int_num= int_num;
 	this-> cl_nm= '\0';
-	cout<<"term  |"<<int_num<<"|\n";
 }
 
 Term::Term(char *nm)
@@ -153,7 +117,6 @@ Term::Term(char *nm)
 	this->nm= new char[40];
 	strcpy(this->nm, nm);
 	this-> cl_nm= '\0';
-	cout<<"term1  |"<<nm<<"|\n";
 }
 
 Term::Term(Column_name *cl_nm)
@@ -161,7 +124,6 @@ Term::Term(Column_name *cl_nm)
 	int_num=-INT_MAX;
 	this->nm= '\0';
 	this-> cl_nm= cl_nm;
-	//cout<<nm<<"  ";
 }
 
 Expression::Expression(Term *tr1)
@@ -231,7 +193,6 @@ Create_statement::Create_statement(Table_name *tb_nm, Attribute_type_list *at_tp
 
 Drop_statement::Drop_statement(Table_name *tb_nm)
 {
-	cout<<"here   "<<endl;
 	this->tb_nm= tb_nm;
 }
 
@@ -362,7 +323,6 @@ Statement::Statement(Create_statement *cr_st)
 }
 Statement::Statement(Drop_statement *dr_st)
 {
-	cout<<"here  222222222222"<<endl;
 	this->cr_st= '\0';
 	this-> sl_st= '\0';
 	this-> is_st= '\0';
@@ -405,9 +365,7 @@ Statement_list::Statement_list(Statement *st, Statement_list *st_ls)
 
 Statement_list::Statement_list(Statement *st)
 {
-	//cout<<"here  1111111111111111"<<endl;
 	this-> st= st;
 	this-> st_ls= '\0';
-	//printFunc();
 }
 

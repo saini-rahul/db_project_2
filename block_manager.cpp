@@ -13,7 +13,7 @@
 #include "SchemaManager.h"
 #include "Tuple.h"
 #include<climits>
-#include <string>
+#include <string.h>
 #include <algorithm>
 #include <utility>
 #include<stack>
@@ -21,6 +21,74 @@
 #include<climits>
 
 using namespace std;
+
+//Performs operations involving memory operations
+
+//Comparator class for sorting
+struct less_than_key_distinct
+{
+    string filed_type;
+
+    inline bool operator() (const pair<vector<string>,string>& tp1, const pair<vector<string>,string>&  tp2)
+    {
+        string str1 = tp1.second;
+        string str2 = tp2.second;
+        int len1 = str1.size();
+        int len2 = str2.size();
+        int i =0;
+        int j =0;
+        
+        while(i < len1 && j < len2)
+        {
+            string ss1 = "";
+            string ss2 = "";
+            int flag1 = 1;
+            int flag2 = 1;
+            
+            
+            for(; i < len1; i++)
+            {
+                if(str1[i] == '\"')
+                {
+                    break;
+                }
+                ss1 = ss1 + str1[i];
+                if(isdigit(str1[i]) == false)
+                {
+                    flag1 = 0;
+                }
+            }
+            i++;
+            
+            for(; j < len2; j++)
+            {
+                if(str2[j] == '\"')
+                {
+                    break;
+                }
+                ss2 = ss2 + str2[j];
+                if(isdigit(str2[j]) == false)
+                {
+                    flag2 = 0;
+                }
+            }
+            j++;
+            
+            if(flag1 == 1)
+            {
+                if(ss1 != ss2)
+                    return (stoi(ss1) < stoi(ss2));
+            }
+            
+            if( ss1 != ss2)
+            {
+                return (ss1 < ss2);
+            }
+        }
+        
+        return (str1 < str2);
+    }
+};
 
 struct less_than_key
 {
@@ -32,7 +100,7 @@ struct less_than_key
         this->field_name = field_name; 
         this->filed_type = filed_type;
     }
-    
+	
     inline bool operator() (const Tuple& tp1, const Tuple& tp2)
     {
         if(filed_type == "INT")
@@ -50,7 +118,7 @@ struct less_than_key
     }
 };
 
-
+//class to performs operations involving memory operations
 class block_manager
 {
   private:
@@ -65,7 +133,8 @@ class block_manager
             this->disk= d;
             this->schema_manager = schema_manager;
         }
-  
+        
+  //Appends tuple to a given relation
   void appendTupleToRelation(Relation* relation_ptr, int memory_block_index, Tuple& tuple) 
   {
     Block* block_ptr;
@@ -104,19 +173,17 @@ class block_manager
             return false; 
         }
         
-        cout<<"SELECT-STATEMENT: Bring Blocks from Relation: BEGIN "<<endl;
         int relation_size = relation_ptr->getNumOfBlocks();
         int mem_size = mem->getMemorySize();
         bool res;
-        //vector<vector<string>> result;
         
         if(mem_size >= relation_size)
         {
-            res = one_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression, result);
+            res = one_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression, result, d);
         }
         else
         {
-            res = two_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression, result);
+            res = two_pass_select_in_memory(relation_ptr, final_rel, select_lists, order_by_att, postfixExpression, result, d);
         }
         
         if(final_rel[0] != table_names[0])
@@ -127,8 +194,6 @@ class block_manager
         if(res == false)
             return false;
         
-        if(d != '\0')    
-            result = getDistinct(result);
         
         //printSelect(result);
     
@@ -138,8 +203,6 @@ class block_manager
   bool one_pass_sort(Schema schema, vector<Tuple>& tp, string order_by_att)
   {
          string fields = order_by_att;
-         std::cout << "field name is " << fields<<" are  "<<order_by_att<<std::endl;
-         
         
          if(schema.fieldNameExists(fields) == false)
             return false;
@@ -163,9 +226,50 @@ class block_manager
          return true;
   }
   
-  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, vector<vector<string>>& result)
+  
+  bool one_pass_distinct(Schema schema, vector<Tuple>& tp, vector<vector<string>>& result, string fields)
   {
-      cout<<"One pass here "<<endl;
+         if(tp.size() == 0)
+            return true;
+         
+         vector<pair<vector<string>,string>> temp_res;
+         for(int i = 0; i < result.size(); i++)
+         {
+            string ss = "";
+            for(int j = 0; j < result[i].size(); j++)
+            {
+                ss = ss + result[i][j];
+                if(j != result[i].size()-1)
+                {
+                    ss = ss + +"\"";
+                }
+            }
+            temp_res.push_back(pair<vector<string>,string> (result[i], ss));
+         }
+         
+         sort(temp_res.begin(), temp_res.end(), less_than_key_distinct());
+         result.clear();
+         
+         for(int i = 0; i < temp_res.size(); i++)
+         {
+             if(i == 0)
+                result.push_back(temp_res[i].first);
+             else
+             {
+                 if(temp_res[i].second != temp_res[i - 1].second)
+                 {
+                     result.push_back(temp_res[i].first);
+                 }
+             }
+         }
+        
+         
+         mem->setTuples(0, tp);
+         return true;
+  }
+  
+  bool one_pass_select_in_memory(Relation* relation_ptr, vector<string> table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, vector<vector<string>>& result, char *d)
+  {
       int relation_size = relation_ptr->getNumOfBlocks();
       relation_ptr->getBlocks(0,0,relation_size);
       vector<Tuple> tp = mem->getTuples(0,relation_size);
@@ -187,8 +291,7 @@ class block_manager
               return false;
       }
       
-      cout<<*mem<<endl;
-      //vector<vector<string>> result;
+      vector<Tuple> tp_list;
       for(int i = 0; i< tp.size(); i++)
       {
           vector<string> values;
@@ -197,9 +300,15 @@ class block_manager
               
               if(project( tp[i], table_names, select_lists, values) == false)
                     return false;
-              
+              tp_list.push_back(tp[i]);
               result.push_back(values);
           }
+      }
+      
+      if(d != '\0')
+      {
+          if(one_pass_distinct(schema, tp_list, result, select_lists[0]) == false) 
+              return false;
       }
       
       return true;
@@ -216,16 +325,225 @@ class block_manager
       }
   }
   
-  Relation *two_pass_sort(Relation *relation_ptr, string& table_names, string fields)
+  Relation *two_pass_distinct(Relation *relation_ptr, string& table_names, string fields, vector<vector<string>>& result)
   {
-         //string fields = order_by_att.substr(order_by_att.find(".")+1, order_by_att.size()-1);
-         //std::cout << "field name is " << fields<<" are  "<<order_by_att<<std::endl;
          Schema schema = schema_manager->getRelation(table_names)->getSchema();
          Relation *temp_ptr = schema_manager->createRelation("sublist_rel", schema);
          Relation *curr_ptr = schema_manager->createRelation(table_names+"_final_rel", schema);
          
          int mem_size = mem->getMemorySize();
          int relation_size = relation_ptr->getNumOfBlocks();
+         
+         enum FIELD_TYPE typ;
+         if(fields[0] == '*' || (fields.size() > 1 && (fields[0] == '*' || fields[1] == '*')))
+            fields = schema.getFieldName(0);
+         if(fields[0] == '.')
+            fields = fields.substr(fields.find(".")+1, fields.size()-1);
+            
+         typ = schema.getFieldType(fields);
+         
+         
+         string cc = "";
+          
+         if(typ == INT)
+         {
+            cc = "INT";
+         }
+         else
+            cc= "STR20";
+            
+         int read_blocks_no = mem_size - 1;
+         int no_part = 0;
+         int rest_tp = 0;
+         for(int i = 0; i < relation_size;)
+         {
+            if((i+ mem_size - 1) < relation_size)
+            {
+                read_blocks_no = mem_size - 1;
+                relation_ptr->getBlocks(i, 0, mem_size - 1);
+            }
+            else
+            {
+                read_blocks_no = relation_size - i;
+                rest_tp = read_blocks_no;
+                relation_ptr->getBlocks(i,0 , read_blocks_no);
+            }
+
+            vector<Tuple> tp = mem->getTuples(0, read_blocks_no);
+            
+            sort(tp.begin(), tp.end(), less_than_key(fields , cc));
+            mem->setTuples(0, tp);
+            temp_ptr->setBlocks(i,0 , read_blocks_no);
+            tp.clear();
+            
+            i = i + mem_size - 1;
+            no_part++;
+            
+         }
+         
+         read_blocks_no = mem_size - 1;
+         int tp_bl = schema.getTuplesPerBlock();
+         int count_arr[no_part];
+         int count_bl[no_part];
+         int exh[no_part];
+         result = getTypess(result);
+         clearMM();
+         int j = 0;
+         for(int i = 0; i < no_part; i++)
+         {
+             count_arr[i] = 0;
+             count_bl[i] = 1;
+             exh[i] = 0;
+             temp_ptr->getBlock(j, i);
+             j = j + mem_size - 1;
+         }
+         
+         vector<Tuple> tp = mem->getTuples(0, no_part);
+         int sorted_count = 0;
+         string str1 = "";
+         int int_val = INT_MIN;
+         
+         int no_tp = schema.getTuplesPerBlock();
+         Block *bl = mem->getBlock(mem_size - 1);
+         int bl_count = 0;
+         
+         
+         while(sorted_count < relation_size)
+         {
+            int i=0;
+            int min = INT_MAX;
+            string minStr = "";
+            int min_pos = -1;
+            int tpp_sz = tp.size();
+            
+            if(cc == "INT")
+            {
+                for(i = 0; i < no_part; i++)
+                {
+                    if(exh[i] == 1)
+                        continue;
+                    int curr_pos = i*no_tp + count_arr[i];
+                    int temp = INT_MAX;
+                    
+                    if(curr_pos < 0 || curr_pos >= tpp_sz)
+                    {
+                        
+                    }
+                    else
+                    {
+                        temp = tp[i*no_tp + count_arr[i]].getField(fields).integer;
+                    }
+                    
+                    if(temp < min)
+                    {
+                        min = temp;
+                        min_pos = i;
+                    }
+                }
+                
+            }
+            else
+            {
+                minStr = "zzzzzzzzzzzzzzzzzzzz";
+                min_pos = -1;
+                for(i = 0; i < no_part; i++)
+                {
+                    if(exh[i] == 1)
+                        continue;
+                    int curr_pos = i*no_tp + count_arr[i];
+                    string temp = "zzzzzzzzzzzzzzzzzzzz";
+                    
+                    if(curr_pos < 0 || curr_pos >= tpp_sz)
+                    {
+                        
+                    }
+                    else
+                    {
+                        temp = *(tp[i*no_tp + count_arr[0]].getField(fields).str);
+                    }
+                    
+                    if(temp < minStr)
+                    {
+                        minStr = temp;
+                        min_pos = i;
+                    }
+                }
+            }
+            
+            if(!bl->isFull() && bl_count < no_tp)
+            {
+                if(min_pos != -1)
+                {
+                    bl->appendTuple(tp[min_pos*no_tp + count_arr[min_pos]]);
+                }
+                else
+                {
+                    curr_ptr->setBlock(sorted_count, mem_size - 1);
+                }
+                bl_count ++;
+            }
+            else
+            {
+                bl_count = 0;
+                curr_ptr->setBlock(sorted_count, mem_size - 1);
+                sorted_count ++;
+                bl->clear();
+                int pos = min_pos*no_tp + count_arr[min_pos];
+                
+                if(min_pos != -1 && pos >= 0)
+                    bl->appendTuple(tp[min_pos*no_tp + count_arr[min_pos]]);
+                
+                bl_count ++;
+            }
+            
+            count_arr[min_pos]++;
+            if(count_arr[min_pos] == no_tp )
+            {
+                count_bl[min_pos] ++;
+                int aa = min_pos*(mem_size - 1) + count_bl[min_pos] - 1;
+                
+                if(count_bl[min_pos] > mem_size - 1)
+                {
+                    exh[min_pos] = 1;
+                }
+                else if(min_pos == (no_part - 1) && count_bl[min_pos] > rest_tp)
+                {
+                    if(count_bl[min_pos] > rest_tp)
+                    {
+                        exh[min_pos] = 1;
+                    }
+                }
+                else
+                {
+                    temp_ptr->getBlock(aa, min_pos);
+                    
+                    tp.clear();
+                    tp = mem->getTuples(0, no_part);
+                }
+                count_arr[min_pos] = 0;
+            }
+            
+         }
+         int sss = curr_ptr->getNumOfBlocks();
+         schema_manager->deleteRelation("sublist_rel");
+         table_names = table_names+"_final_rel";
+         return curr_ptr;
+  }
+
+  
+  Relation *two_pass_sort(Relation *relation_ptr, string& table_names, string fields)
+  {
+         Schema schema = schema_manager->getRelation(table_names)->getSchema();
+         Relation *temp_ptr = schema_manager->createRelation("sublist_rel", schema);
+         Relation *curr_ptr = schema_manager->createRelation(table_names+"_final_rel", schema);
+         
+         int mem_size = mem->getMemorySize();
+         int relation_size = relation_ptr->getNumOfBlocks();
+         
+         if(fields[0] == '*' || (fields.size() > 1 && (fields[0] == '*' || fields[1] == '*')))
+            fields = schema.getFieldName(0);
+         if(fields[0] == '.')
+            fields = fields.substr(fields.find(".")+1, fields.size()-1);
          
          enum FIELD_TYPE typ;
          
@@ -241,7 +559,6 @@ class block_manager
          else
             cc= "STR20";
             
-         //cout<<*relation_ptr<<endl;
          int read_blocks_no = mem_size - 1;
          int no_part = 0;
          int rest_tp = 0;
@@ -275,8 +592,6 @@ class block_manager
          int count_arr[no_part];
          int count_bl[no_part];
          int exh[no_part];
-         //cout<<*temp_ptr<<endl;
-         cout<<"no partitions   "<<no_part<<endl;
          clearMM();
          int j = 0;
          for(int i = 0; i < no_part; i++)
@@ -286,11 +601,8 @@ class block_manager
              exh[i] = 0;
              temp_ptr->getBlock(j, i);
              j = j + mem_size - 1;
-             //cout<<"lllllllllllllllllllllllllll"<<"  "<<i<<"    "<<j<<endl;
          }
-         //cout<<*mem<<endl;
          
-         cout<<"it si ssssssssss  "<<no_part<<"  rel size "<<relation_size<<"type is "<<cc<<endl;
          vector<Tuple> tp = mem->getTuples(0, no_part);
          int sorted_count = 0;
          string str1 = "";
@@ -300,15 +612,14 @@ class block_manager
          Block *bl = mem->getBlock(mem_size - 1);
          int bl_count = 0;
          
-         cout<<"noooooopartition issssssssssssssssssssss"<<no_part<<endl;
          
          while(sorted_count < relation_size)
          {
-            cout<<"aaaaaaaaaaaaaaaaaaaaaaaaaa "<<endl;
             int i=0;
             int min = INT_MAX;
             string minStr = "";
             int min_pos = -1;
+            int tpp_sz= tp.size();
             
             if(cc == "INT")
             {
@@ -316,8 +627,16 @@ class block_manager
                 {
                     if(exh[i] == 1)
                         continue;
-                    int temp = tp[i*no_tp + count_arr[i]].getField(fields).integer;
+                    int poss = i*no_tp + count_arr[i];
+                    int temp = INT_MAX;
                     
+                    if(poss >= tpp_sz || poss < 0)
+                    {
+                    }
+                    else
+                    {
+                        temp = tp[poss].getField(fields).integer;
+                    }
                     
                     if(temp < min)
                     {
@@ -335,8 +654,19 @@ class block_manager
                 {
                     if(exh[i] == 1)
                         continue;
+                        
+                    int poss = i*no_tp + count_arr[i];
+                    string temp = "zzzzzzzzzzzzzzzzzzzz";
                     
-                    string temp = *(tp[i*no_tp + count_arr[0]].getField(fields).str);
+                    if(poss >= tpp_sz || poss < 0)
+                    {
+                    }
+                    else
+                    {
+                        temp = *(tp[i*no_tp + count_arr[0]].getField(fields).str);
+                    }
+                    
+                    //string temp = *(tp[i*no_tp + count_arr[0]].getField(fields).str);
                     if(temp < minStr)
                     {
                         minStr = temp;
@@ -345,10 +675,8 @@ class block_manager
                 }
             }
             
-            cout<<"bbbbbbbbbbbbbbbbbbbbbbbbbb  "<<minStr<<"from  "<<min_pos<<endl;
             if(!bl->isFull() && bl_count < no_tp)
             {
-                cout<<"in iffffffffffffffffffffff"<<endl;
                 if(min_pos != -1)
                 {
                     bl->appendTuple(tp[min_pos*no_tp + count_arr[min_pos]]);
@@ -361,37 +689,30 @@ class block_manager
             }
             else
             {
-                //cout<<"in elseeeeeeeeeeeeeeeeeeeeeeeeee"<<endl;
                 bl_count = 0;
                 curr_ptr->setBlock(sorted_count, mem_size - 1);
                 sorted_count ++;
                 bl->clear();
-                //cout<<"in ssssssssssssss"<<endl;
                 int pos = min_pos*no_tp + count_arr[min_pos];
                 
                 if(min_pos != -1 && pos >= 0)
                     bl->appendTuple(tp[min_pos*no_tp + count_arr[min_pos]]);
                 
-                //cout<<"in errorrrrrrrrrrrrr   "<<min_pos<<"  and  "<<min<<endl;
                 bl_count ++;
             }
             
-            cout<<"ccccccccccccccccccccccccccccc"<<endl;
             count_arr[min_pos]++;
             if(count_arr[min_pos] == no_tp )
             {
                 count_bl[min_pos] ++;
                 int aa = min_pos*(mem_size - 1) + count_bl[min_pos] - 1;
-                cout<<"lllllllllllllllllllllllllll  "<<minStr<<"   "<<min_pos<<"    "<<aa<<endl;
                 
                 if(count_bl[min_pos] > mem_size - 1)
                 {
                     exh[min_pos] = 1;
-                    cout<<"exhaissf   ooooooo   "<<min_pos<<endl;
                 }
                 else if(min_pos == (no_part - 1) && count_bl[min_pos] > rest_tp)
                 {
-                    cout<<"exhaissf   ooooooo   "<<min_pos<<endl;
                     if(count_bl[min_pos] > rest_tp)
                     {
                         exh[min_pos] = 1;
@@ -399,7 +720,6 @@ class block_manager
                 }
                 else
                 {
-                    //cout<<"lllllllllllllllllllllllllll  "<<min<<"   "<<min_pos<<"    "<<aa<<endl;
                     temp_ptr->getBlock(aa, min_pos);
                     
                     tp.clear();
@@ -408,9 +728,7 @@ class block_manager
                 count_arr[min_pos] = 0;
             }
             
-            cout<<sorted_count<<endl;
          }
-         cout<<*curr_ptr<<endl;
          int sss = curr_ptr->getNumOfBlocks();
          schema_manager->deleteRelation("sublist_rel");
          table_names = table_names+"_final_rel";
@@ -418,16 +736,13 @@ class block_manager
   }
 
   
-  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string>& table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, vector<vector<string>>& result)
+  bool two_pass_select_in_memory(Relation* relation_ptr, vector<string>& table_names , vector<string> select_lists, string order_by_att,  vector<pair<string,string>>& postfixExpression, vector<vector<string>>& result, char *d)
   {
-        cout<<"Two pass here "<<endl;
         int mem_size = mem->getMemorySize();
         int relation_size = relation_ptr->getNumOfBlocks();
         //int sorted = 0;
         
-        //cout<<"Tuple based select is here "<<relation_size<<"    "<<endl;
         Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
-        std::cout << "sssssssssssssssschhhemeler" <<schema<< std::endl;
         /*if(d != '\0')
         {
             string fields = "";
@@ -465,7 +780,6 @@ class block_manager
             relation_ptr = two_pass_sort(relation_ptr, table_names[0], fields);
         }
         relation_size = relation_ptr->getNumOfBlocks();
-        cout<<"rel sizeeeeeeeeeeeeeeeee   "<<relation_size;
         int read_blocks_no = mem_size;
         for(int i = 0; i < relation_size;)
         {
@@ -497,11 +811,14 @@ class block_manager
             i = i + mem_size;
         }
         
-        cout<<"table now is"<<table_names[0]<<endl;
         
         if(order_by_att.size() > 0 )    
             schema_manager->deleteRelation(table_names[0]);
         
+        if(d != '\0')
+        {
+            two_pass_distinct(relation_ptr, table_names[0], select_lists[0], result);
+        }
         return true;
 }
   
@@ -533,12 +850,10 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                     //extract the column name
                     if(table_names.find("temp") != 0)
                     {
-                        //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
                         t = s.substr(found+1);
                     }
                     else
                     {
-                        //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
                         t = s;
                     }
                         
@@ -569,12 +884,10 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                     
                     if(table_names.find("temp") != 0)
                     {
-                        //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
                         t = s.substr(found+1);
                     }
                     else
                     {
-                        //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
                         t = s;
                     }
                                             
@@ -613,12 +926,10 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
              //t = s.substr(found+1);
              if(table_names.find("temp") != 0)
              {
-                //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
                 t = s.substr(found+1);
              }
              else
              {
-                //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
                 t = s;
              }
                                     
@@ -626,7 +937,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 val2 = tuple.getField(t).integer;
             else
                 return false;
-                                        //cout << tuple.getField(t).str << "\t";
       
         }else val2 = stoi(p1.first);
                                 
@@ -638,12 +948,10 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             //t = s.substr(found+1);
             if(table_names.find("temp") != 0)
             {
-                //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
                 t = s.substr(found+1);
             }
             else
             {
-                //cout<<"iffffffffffffffffffffffff "<<table_names<<endl;
                 t = s;
             }
                                     
@@ -651,7 +959,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
               val1 = tuple.getField(t).integer;
             else
                 return false;
-                                        //cout << tuple.getField(t).str << "\t";
       
         }else val1 = stoi(p2.first);
                                 
@@ -769,7 +1076,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       int tmin = INT_MAX;
       for(int i = 0; i < relation_size.size(); i++)
       {
-          //cout<<"pos is "<<i<<"  aaa   "<<relation_size[i];
           if(relation_size[i] < tmin)
           {
               tmin = relation_size[i];
@@ -906,12 +1212,9 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             
             // for(int i = 0; i<clauses.size() ;i++)
             // {
-            //     cout<<"Clause "<<i+1<<endl;
             //     for(int j = 0; j < clauses[i].size(); j++)
             //     {
-            //         cout<<clauses[i][j].first<<", "<<clauses[i][j].second<<"||";
             //     }
-            //     cout<<endl;
             // }
             
             
@@ -953,7 +1256,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       vector<int> relation_size;
       int min = -1;
       int s_min = -1;
-      cout<<"prepare_join comes"<<endl;
       
       /* Push relation pointers for all the tables in vector relation_ptr, and their corresponding sizes in vector relation_size */
       for(int i =0; i < table_names.size(); i++)
@@ -1005,10 +1307,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       string table_name2 = table_names[s_min];
       relation_ptr[min] = two_pass_sort(relation_ptr[min], table_names[min], "sid");
       relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], table_names[s_min], "sid");
-      cout<<"table name min "<<table_names[min]<<endl;
-      cout<<"table name min "<<table_names[s_min]<<endl;
-      cout<<*relation_ptr[min]<<endl;
-      cout<<*relation_ptr[s_min]<<endl;
       
       Schema schema1 = schema_manager->getRelation(table_names[min])->getSchema();
       Schema schema2 = schema_manager->getRelation(table_names[s_min])->getSchema();
@@ -1023,7 +1321,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       vector<enum FIELD_TYPE> field_types2 = schema2.getFieldTypes();
       int no_fields1 = schema1.getNumOfFields();
       int no_fields2 = schema2.getNumOfFields();
-      cout<<"join comes "<<endl;
       int max_lar = INT_MIN;
       int min_lar = INT_MAX;
       
@@ -1082,7 +1379,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                     int sid2 = tp2[j].getField("sid").integer;
                     if(i == 0)
                     {
-                        cout<<"max "<<max_lar<<" min "<<min_lar<<"  sid "<<sid2<<endl;
                         if(sid2 > max_lar)
                         {
                             max_lar = sid2;
@@ -1102,13 +1398,11 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
 
                         if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
                         {
-                            cout<<"breakkkk"<<endl;
                             break;
                         }
                     
                         if(tp1[i].getField("sid").integer < tp2[j].getField("sid").integer)
                         {
-                            cout<<"not breakkkk"<<endl;
                             break;
                         }
                     }
@@ -1141,7 +1435,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                         }
                         k++;
                     }
-                    cout<<tuple<<endl;
                     if(satisfies_condition1(tuple, relation_name, field_name1, field_types1,postfixExpression) == true)
                     {
                         appendTupleToRelation(temp_ptr, relation_size[min]+1, tuple);
@@ -1156,7 +1449,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
         int read_blocks_no = -1;
         for(int i = 0; i < relation_size[min];)
         {
-            cout<<"sss"<<endl;
             if((i+ mem_size-2) < relation_size[min])
             {
                 read_blocks_no = mem_size-2;
@@ -1167,7 +1459,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 read_blocks_no = relation_size[min] - i;
                 relation_ptr[min]->getBlocks(i, 0 , read_blocks_no);
             }
-            cout<<"bbb"<<endl;
             vector<Tuple> tp1 = mem->getTuples(0, read_blocks_no);
             for(int m = 0; m < tp1.size(); m++)
             {
@@ -1175,7 +1466,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
               {
                 relation_ptr[s_min]->getBlocks(rl, read_blocks_no, 1);
                 vector<Tuple> tp2 = mem->getTuples(read_blocks_no, 1);
-                //cout<<"cccc"<<endl;
                 int flag = 0;
                 for(int j = 0; j < tp2.size(); j++)
                 {
@@ -1184,7 +1474,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                     
                     if(i == 0 && m == 0)
                     {
-                        cout<<"max "<<max_lar<<" min "<<min_lar<<"  sid "<<sid2<<endl;
                         if(sid2 > max_lar)
                         {
                             max_lar = sid2;
@@ -1210,7 +1499,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                     
                         if(sid1 < sid2)
                         {
-                            //cout<<"breakkkk"<<endl;
                             flag = 1;
                             break;
                         }
@@ -1222,7 +1510,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                     
                     for(int l =0; l < no_fields1; l++)
                     {
-                        //cout<<"ammmm "<<l<<endl;
                         if(field_types1[k] == INT)
                         {
                             tuple.setField(k, tp1[m].getField(l).integer);
@@ -1231,11 +1518,9 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                         {
                             tuple.setField(k, *(tp1[m].getField(l).str));
                         }
-                        //cout<<"ammmm f"<<l<<endl;
                         k++;
                     }
                     
-                    //cout<<"ammmm  1"<<endl;
                     for(int l =0; l < no_fields2; l++)
                     {
                         
@@ -1249,11 +1534,8 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                         }
                         k++;
                     }
-                    //cout<<"ammmm  2"<<endl;
-                    //cout<<tuple<<endl;
                     appendTupleToRelation(temp_ptr, read_blocks_no+1, tuple);
                 }
-                //cout<<"dddd"<<endl;
                 if(flag == 1)
                     break;
                 
@@ -1262,8 +1544,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             
             i = i + mem_size - 2;
         }
-        //cout<<"outside"<<endl;
-        //cout<<*temp_ptr<<endl;
       }
       
       swap(relation_ptr[min], relation_ptr.back());
@@ -1289,7 +1569,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
   
   bool project(Tuple tp, vector<string>& table_names, vector<string>& select_lists, vector<string>& values)
   {
-      //cout<<"Projection/Printing: BEGIN:"<<endl;
       Schema schema = schema_manager->getRelation(table_names[0])->getSchema();
       //int pr_flag = 0;
       //int nd_flag = 0;
@@ -1341,21 +1620,15 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
           }
       }
     
-      /*for(int i = 0; i < values.size(); i++)
-            {
-                cout<<values[i]<<"\t";
-            }
-            cout<<endl;*/
+      
       return true;
   }
   
-  vector<vector<string>> getDistinct(vector<vector<string>> result)
+  vector<vector<string>> getTypess(vector<vector<string>> result)
   {
-      cout<<"res is "<<result.size()<<endl;
       int sz = result.size();
       int printedd[sz];
       vector<vector<string>> unique;
-      
       for(int j = 0; j < sz; j++)
       {
             vector<string> values = result[j];
@@ -1367,7 +1640,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             unique.push_back(values);  
             /*for(int i = 0; i < values.size(); i++)
             {
-                cout<<values[i]<<"\t";
             }
             cout<<endl;*/
             for(int i = j + 1; i < sz; i++)
@@ -1378,25 +1650,9 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 }
             }
       }
-       return unique;
+      return unique;
   }
   
-  void printSelect(vector<vector<string>> result)
-  {
-      cout<<"res is "<<result.size()<<endl;
-      for(int j = 0; j < result.size(); j++)
-      {
-            vector<string> values = result[j];
-            if(values.size() == 0)
-                continue;
-            for(int i = 0; i < values.size(); i++)
-            {
-                cout<<values[i]<<"\t";
-            }
-            cout<<endl;
-      }
-      
-  }
   
   bool processDeleteStatement(string table_name, vector<pair<string,string>>& postfixExpression) 
   {
@@ -1412,7 +1668,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
         return true;
     }
 
-    //cout<<*relation_ptr<<endl;
     Block* out_block = mem->getBlock(1);
     out_block->clear();
 
@@ -1451,7 +1706,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
     }
 
     relation_ptr->deleteBlocks(writeBlockIndex);
-    cout<<"fucjkkkk"<<writeBlockIndex<<"ssss"<<*relation_ptr<<endl;
     return true;
   }
   
