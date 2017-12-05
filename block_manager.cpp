@@ -1569,7 +1569,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                             flag = 1;
                             int sid1 = tp1[i].getField(joinCol1).integer;
                             int sid2 = tp2[j].getField(joinCol2).integer;
-                            cout<<"sid1 "<<sid1<<"sid2 "<<sid2<<endl;
+                            // cout<<"sid1 "<<sid1<<"sid2 "<<sid2<<endl;
                             if(sid1 == sid2)
                             {
                                 flag =2;
@@ -1749,7 +1749,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                         k++;
                     }
                     
-                    cout<<tuple<<endl;
+                    // cout<<tuple<<endl;
                     appendTupleToRelation(temp_ptr, read_blocks_no+1, tuple);
                 }
                 if(flag == 1)
@@ -1761,7 +1761,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             i = i + mem_size - 2;
         }
       }
-      cout<<*temp_ptr<<endl;
+    //   cout<<*temp_ptr<<endl;
       
       swap(relation_ptr[min], relation_ptr.back());
       relation_ptr.pop_back();
