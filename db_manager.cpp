@@ -56,15 +56,11 @@ bool db_manager::process_delete_statement(Delete_statement *dl_st)
         vector<string> table_name;
         table_name.push_back(dl_st->tb_nm->nm);
         if (!process_search_condition(dl_st->sr_cn, postfixExpression, table_name)){ 
-            cout<<"Process Search Condition Failed."<<endl;
             return false;
         }
         else{
-                cout<<"We have a valid postfixExpression. Printing the expression: "<<endl;
                 for(int i =0; i<postfixExpression.size(); i++){
-                    cout<<postfixExpression[i].first<<", "<<postfixExpression[i].second<<" || ";
                 }
-                cout<<endl;
             }
     }
     return bl_mg->processDeleteStatement(dl_st->tb_nm->nm, postfixExpression);
@@ -142,11 +138,8 @@ bool db_manager::process_select_statement(Select_statement_rest *sl_rs, char *d,
             return false;
         }
         else{
-                cout<<"We have a valid postfixExpression. Printing the expression: "<<endl;
                 for(int i =0; i<postfixExpression.size(); i++){
-                    cout<<postfixExpression[i].first<<", "<<postfixExpression[i].second<<" || ";
                 }
-                cout<<endl;
             }
     }
     
@@ -162,7 +155,6 @@ string db_manager::process_column_name(Column_name *cl_nm, vector<string>& table
     if(cl_nm->tb_nm != '\0')
     {
         string table_name(cl_nm->tb_nm->nm);
-        cout<<"table name is "<<table_name<<endl;
         
         /* If the table name used in column names do not match the table names in the table-list, return false */
         if(std::find(table_names.begin(), table_names.end(), table_name) != table_names.end()== false) 
@@ -410,27 +402,30 @@ bool db_manager::process_insert_statement(Insert_statement *is_st)
                 continue;
             
             Tuple tpl = relation_ptr->createTuple();
-            
+            if(j == 0)
+                continue;
             for(int i = 0; i < values.size(); i++)
             {
-                enum FIELD_TYPE typ = schema.getFieldType(att_ls[i]);
-                if(typ == INT)
-                {
-                    
-                    string aa= values[i];
-                    /*for(int k =0; k < aa.size(); k++)
+                //else
+                //{
+                    enum FIELD_TYPE typ = schema.getFieldType(att_ls[i]);
+                    if(typ == INT)
                     {
-                        if(isdigit(aa[k]) == false)
+                        string aa= values[i];
+                        for(int k =0; k < aa.size(); k++)
                         {
-                            return false;
+                            if(isdigit(aa[k]) == false)
+                            {
+                                return false;
+                            }
                         }
-                    }*/
-                    tpl.setField(i, stoi(values[i]));
-                }
-                else
-                {
-                    tpl.setField(i, values[i]);
-                }
+                        tpl.setField(i, stoi(values[i]));
+                    }
+                    else
+                    {
+                        tpl.setField(i, values[i]);
+                    }
+                //}
             }
             if(tpl.isNull())
                 return false;
@@ -494,10 +489,6 @@ bool db_manager::process_create_statement(Create_statement *cr_st)
         return false;
     }
     
-    cout << "The table has name " << relation_ptr->getRelationName() << endl;
-    cout << "The table has schema:" << endl;
-    cout << relation_ptr->getSchema() << endl;
-    std::cout << schema_manager << std::endl;
     return true;
 }
 
