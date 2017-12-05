@@ -1178,10 +1178,10 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
         }
     }
   
-  static bool returnNaturalJoinAttribute (vector<string> field_name, vector<enum FIELD_TYPE> field_types, vector<pair<string,string>>& postfixExpression, string& joinCol1, string& joinCol2)
+  static bool returnNaturalJoinAttribute (vector<string> field_name, vector<enum FIELD_TYPE> field_types, vector<pair<string,string>>& postfixExpression, string& joinCol)
   {
-      joinCol1="";
-      joinCol2="";
+      joinCol="";
+    //   joinCol2="";
       int n = postfixExpression.size();
 
         if(n == 0 ) return true; //no where clause
@@ -1247,8 +1247,8 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                                         if(col1 == col2)
                                         {
                                             //natural join on attribute col1
-                                            joinCol1 = col1;
-                                            joinCol2 = clauses[i][1].first;
+                                            joinCol = col1;
+                                          
                                             return true;
                                         }
                                     }
@@ -1466,15 +1466,15 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       }
     
         string joinCol = "";
-        string joinCol1 = "";
-      /*if (returnNaturalJoinAttribute(field_name1, field_types1, postfixExpression, joinCol, joinCol1))
-      {
-        if(joinCol != "")
-        {
-            relation_ptr[min] = two_pass_sort(relation_ptr[min], table_names[min], joinCol);
-            relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], table_names[s_min], joinCol);
-        }
-       }*/
+        // string joinCol1 = "";
+    //   if (returnNaturalJoinAttribute(field_name1, field_types1, postfixExpression, joinCol))
+    //   {
+    //     if(joinCol != "")
+    //     {
+    //         relation_ptr[min] = two_pass_sort(relation_ptr[min], table_names[min], joinCol);
+    //         relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], table_names[s_min], joinCol);
+    //     }
+    //   }
       
       /*cout<<*relation_ptr[min]<<endl;
       cout<<table_names[min]<<endl;
