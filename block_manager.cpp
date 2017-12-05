@@ -1433,11 +1433,13 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       int no_fields2 = schema2.getNumOfFields();
       int max_lar = INT_MIN;
       int min_lar = INT_MAX;
+      vector<string> field_name_temp;
       
       for(int i =0; i < no_fields1; i++)
       {
           if(table_names[min].find("temp") != 0)
           {
+              cout<<"table isss "<<table_names[min]<<endl;
             field_name[i] = table_name1+"."+field_name[i];
           }
           
@@ -1449,6 +1451,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       {
           if(table_names[s_min].find("temp") != 0)
           {
+              cout<<"table isss "<<table_names[s_min]<<endl;
               field_name2[i] = table_name2 + "."+field_name2[i];
           }
           
@@ -1467,6 +1470,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
     
         string joinCol = "";
         string joinCol1 = "";
+
       /*if (returnNaturalJoinAttribute(field_name1, field_types1, postfixExpression, joinCol, joinCol1))
       {
         if(joinCol != "")
@@ -1475,6 +1479,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], table_names[s_min], joinCol);
         }
        }*/
+      
       
       /*cout<<*relation_ptr[min]<<endl;
       cout<<table_names[min]<<endl;
