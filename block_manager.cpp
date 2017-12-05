@@ -1151,8 +1151,101 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
         }
     }
   
+  static bool returnNaturalJoinAttribute (vector<string> field_name, vector<enum FIELD_TYPE> field_types, vector<pair<string,string>>& postfixExpression, string& joinCol)
+  {
+      joinCol="";
+      int n = postfixExpression.size();
+
+        if(n == 0 ) return true; //no where clause
+        
+        if(postfixExpression[n-1].first == "OR" || postfixExpression[n-1].first != "AND")//root of the search condition is an OR, we need to run the where clause only when all the columns used in where are available 
+        {
+            return false;
+        }
+        else if (postfixExpression[n-1].first == "AND")
+        {
+            stack<expressionTree*> S;
+            //prepare a ANDTree to get all the cluases involved in AND
+            for(int i = 0; i < postfixExpression.size(); i++)
+            {
+                if (postfixExpression[i].second != "OPERATOR")
+                {
+                    expressionTree* e = new expressionTree;
+                    e->value = postfixExpression[i].first;
+                    e->type = postfixExpression[i].second;
+                    S.push(e);
+                }else 
+                {
+                    expressionTree* e = new expressionTree;
+                    e->value = postfixExpression[i].first;
+                    e->type = postfixExpression[i].second;
+                    expressionTree* right = S.top();
+                    S.pop();
+                    expressionTree* left = S.top();
+                    S.pop();
+                    e->leftChild = left;
+                    e->rightChild = right;
+                    S.push(e);
+                }
+            }
+            expressionTree* root = S.top();
+            //print expression tree
+            //work on expression tree
+            vector< vector< pair<string,string> > > clauses;
+            postOrderTraversalExpressionTree(root, clauses);
+            
+            // for(int i = 0; i<clauses.size() ;i++)
+            // {
+            //     cout<<"Clause "<<i+1<<endl;
+            //     for(int j = 0; j < clauses[i].size(); j++)
+            //     {
+            //         cout<<clauses[i][j].first<<", "<<clauses[i][j].second<<"||";
+            //     }
+            //     cout<<endl;
+            // }
+            
+            
+            //check if the current tuple has all the fields to satisfy any clause
+            for(int i = 0; i<clauses.size() ;i++)
+            {
+                    //clause i
+                    if(clauses[i].size() == 3)
+                    {
+                        if(clauses[i][2].first == "=")
+                        {
+                            if(clauses[i][0].second == "COLUMN-NAME" && clauses[i][1].second == "COLUMN-NAME")
+                            {
+                                if(find (field_name.begin(), field_name.end(), clauses[i][0].first) != field_name.end())
+                                {
+                                    //column present
+                                    if(find (field_name.begin(), field_name.end(), clauses[i][1].first) != field_name.end())
+                                    {
+                                        //column present
+                                        size_t dotPos = clauses[i][0].first.rfind('.');
+                                        string col1 = clauses[i][0].first.substr(dotPos+1);
+                                        
+                                        dotPos = clauses[i][1].first.rfind('.');
+                                        string col2 = clauses[i][1].first.substr(dotPos+1);
+                                        
+                                        if(col1 == col2)
+                                        {
+                                            //natural join on attribute col1
+                                            joinCol = col1;
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+            }
+            return false;
+      
+    }
+  }
   static bool satisfies_condition1(Tuple tp, string table_names, vector<string> field_name, vector<enum FIELD_TYPE> field_types, vector<pair<string,string>>& postfixExpression)
   {
+
     //extract all the column attributes from postfixExpression, so that we can try to push the selections down
     // vector<string> columnNamesInWhere;
     
@@ -1218,7 +1311,7 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
             // }
             
             
-            //check of the current tuple has all the fields to satisfy any clause
+            //check if the current tuple has all the fields to satisfy any clause
             for(int i = 0; i<clauses.size() ;i++)
             {
                     for(int j = 0; j < clauses[i].size(); j++)
@@ -1305,14 +1398,10 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       vector<string> values;
       string table_name1 = table_names[min];
       string table_name2 = table_names[s_min];
-      relation_ptr[min] = two_pass_sort(relation_ptr[min], table_names[min], "sid");
-      relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], table_names[s_min], "sid");
-      
       Schema schema1 = schema_manager->getRelation(table_names[min])->getSchema();
       Schema schema2 = schema_manager->getRelation(table_names[s_min])->getSchema();
       vector<string> field_name = schema1.getFieldNames();
       vector<enum FIELD_TYPE> field_types = schema1.getFieldTypes();
-      
     
       vector<string> field_name1;
       vector<enum FIELD_TYPE> field_types1;
@@ -1354,6 +1443,16 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       {
           return temp_ptr;
       }
+    
+        string joinCol = ""; 
+      if (returnNaturalJoinAttribute(field_name1, field_types1, postfixExpression, joinCol))
+      {
+        if(joinCol != "")
+        {
+            relation_ptr[min] = two_pass_sort(relation_ptr[min], table_names[min], joinCol);
+            relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], table_names[s_min], joinCol);
+        }
+       }
       
       int mem_size = mem->getMemorySize();
       if(mem_size - 2 > relation_size[min])
@@ -1375,38 +1474,43 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 
                 for(int j = 0; j < tp2.size(); j++)
                 {
-                    int sid1 = tp1[i].getField("sid").integer;
-                    int sid2 = tp2[j].getField("sid").integer;
-                    if(i == 0)
+                    if(joinCol != "")
                     {
-                        if(sid2 > max_lar)
-                        {
-                            max_lar = sid2;
-                        }
-                        
-                        if(sid2 < min_lar)
-                        {
-                            min_lar = sid2;
-                        }
-                    }
-                    else
-                    {
-                        if(sid1 > max_lar)
-                            break;
-                        if(sid1 < min_lar)
-                            break;
-
-                        if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
-                        {
-                            break;
-                        }
-                    
-                        if(tp1[i].getField("sid").integer < tp2[j].getField("sid").integer)
-                        {
-                            break;
-                        }
-                    }
-                    
+                            int sid1 = tp1[i].getField(joinCol).integer;
+                            int sid2 = tp2[j].getField(joinCol).integer;
+                            if(i == 0)
+                            {
+                                cout<<"max "<<max_lar<<" min "<<min_lar<<"  sid "<<sid2<<endl;
+                                if(sid2 > max_lar)
+                                {
+                                    max_lar = sid2;
+                                }
+                                
+                                if(sid2 < min_lar)
+                                {
+                                    min_lar = sid2;
+                                }
+                            }
+                            else
+                            {
+                                if(sid1 > max_lar)
+                                    break;
+                                if(sid1 < min_lar)
+                                    break;
+        
+                                if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
+                                {
+                                    cout<<"breakkkk"<<endl;
+                                    break;
+                                }
+                            
+                                if(tp1[i].getField(joinCol).integer < tp2[j].getField(joinCol).integer)
+                                {
+                                    cout<<"not breakkkk"<<endl;
+                                    break;
+                                }
+                            }
+                    }        
                     Tuple tuple = temp_ptr->createTuple();
                     int k =0;
                     for(int l =0; l < no_fields1; l++)
@@ -1469,41 +1573,48 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 int flag = 0;
                 for(int j = 0; j < tp2.size(); j++)
                 {
-                    int sid1 = tp1[m].getField("sid").integer;
-                    int sid2 = tp2[j].getField("sid").integer;
                     
-                    if(i == 0 && m == 0)
+                    if(joinCol != "")
                     {
-                        if(sid2 > max_lar)
-                        {
-                            max_lar = sid2;
-                        }
+                        int sid1 = tp1[m].getField(joinCol).integer;
+                        int sid2 = tp2[j].getField(joinCol).integer;
                         
-                        if(sid2 < min_lar)
+
+                        if(i == 0 && m == 0)
                         {
-                            min_lar = sid2;
+                            if(sid2 > max_lar)
+                            {
+                                max_lar = sid2;
+                            }
+                            
+                            if(sid2 < min_lar)
+                            {
+                                min_lar = sid2;
+                            }
                         }
-                    }
-                    else
-                    {
-                        
-                        if(sid1 > max_lar)
-                            break;
-                        if(sid1 < min_lar)
-                            break;
-                    
-                        if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
-                        {
-                            break;
-                        }
-                    
-                        if(sid1 < sid2)
+                        else
                         {
                             flag = 1;
                             break;
+
+                            if(sid1 > max_lar)
+                                break;
+                            if(sid1 < min_lar)
+                                break;
+                        
+                            if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
+                            {
+                                break;
+                            }
+                        
+                            if(sid1 < sid2)
+                            {
+                                //cout<<"breakkkk"<<endl;
+                                flag = 1;
+                                break;
+                            }
                         }
-                    }
-                    
+                    }   
                     Tuple tuple = temp_ptr->createTuple();
                     
                     int k =0;
