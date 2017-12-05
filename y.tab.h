@@ -110,7 +110,7 @@ extern int yydebug;
 typedef union YYSTYPE YYSTYPE;
 union YYSTYPE
 {
-#line 14 "typ.y" /* yacc.c:1909  */
+#line 15 "typ.y" /* yacc.c:1909  */
 
     int d;
     char *sttr;

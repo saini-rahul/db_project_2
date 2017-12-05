@@ -3,6 +3,7 @@
 #include "db_manager.h"
 extern int  yyparse();
 extern int yylex_destroy(void);
+extern FILE *yyin;
 
 int yylex(void);
 Statement_list *root;
@@ -87,15 +88,15 @@ return 1;
 };
 
 statement:
-create_statement NEWLINE
+create_statement
 { $$= new Statement($1); }
-| drop_statement NEWLINE
+| drop_statement
 { $$= new Statement($1); }
-| select_statement NEWLINE 
+| select_statement
 { $$= new Statement($1); }
-| insert_statement NEWLINE
+| insert_statement
 { $$= new Statement($1); }
-| delete_statement NEWLINE
+| delete_statement
 { $$= new Statement($1); }
 ;
 

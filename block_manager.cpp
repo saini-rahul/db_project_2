@@ -391,7 +391,7 @@ class block_manager
          int exh[no_part];
          result = getTypess(result);
          clearMM();
-         int j = 0;
+         /*int j = 0;
          for(int i = 0; i < no_part; i++)
          {
              count_arr[i] = 0;
@@ -526,7 +526,7 @@ class block_manager
                 count_arr[min_pos] = 0;
             }
             
-         }
+         }*/
          int sss = curr_ptr->getNumOfBlocks();
          schema_manager->deleteRelation("sublist_rel");
          table_names = table_names+"_final_rel";
@@ -1178,10 +1178,10 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
         }
     }
   
-  static bool returnNaturalJoinAttribute (vector<string> field_name, vector<enum FIELD_TYPE> field_types, vector<pair<string,string>>& postfixExpression, string& joinCol1, string& joinCol2)
+  static bool returnNaturalJoinAttribute (vector<string> field_name, vector<enum FIELD_TYPE> field_types, vector<pair<string,string>>& postfixExpression, string& joinCol)
   {
-      joinCol1="";
-      joinCol2="";
+      joinCol="";
+    //   joinCol2="";
       int n = postfixExpression.size();
 
         if(n == 0 ) return true; //no where clause
@@ -1247,8 +1247,8 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                                         if(col1 == col2)
                                         {
                                             //natural join on attribute col1
-                                            joinCol1 = col1;
-                                            joinCol2 = clauses[i][1].first;
+                                            joinCol = col1;
+                                          
                                             return true;
                                         }
                                     }
@@ -1433,13 +1433,11 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       int no_fields2 = schema2.getNumOfFields();
       int max_lar = INT_MIN;
       int min_lar = INT_MAX;
-      vector<string> field_name_temp;
       
       for(int i =0; i < no_fields1; i++)
       {
           if(table_names[min].find("temp") != 0)
           {
-              cout<<"table isss "<<table_names[min]<<endl;
             field_name[i] = table_name1+"."+field_name[i];
           }
           
@@ -1451,7 +1449,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       {
           if(table_names[s_min].find("temp") != 0)
           {
-              cout<<"table isss "<<table_names[s_min]<<endl;
               field_name2[i] = table_name2 + "."+field_name2[i];
           }
           
@@ -1469,34 +1466,92 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
       }
     
         string joinCol = "";
+        
         string joinCol1 = "";
-
-      /*if (returnNaturalJoinAttribute(field_name1, field_types1, postfixExpression, joinCol, joinCol1))
-      {
-        if(joinCol != "")
+        string joinCol2 = "";
+        if(postfixExpression.size() == 0)
         {
-            relation_ptr[min] = two_pass_sort(relation_ptr[min], table_names[min], joinCol);
-            relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], table_names[s_min], joinCol);
         }
-       }*/
-      
-      
-      /*cout<<*relation_ptr[min]<<endl;
-      cout<<table_names[min]<<endl;
-      cout<<*relation_ptr[s_min]<<endl;
-      cout<<table_names[s_min]<<endl;
-      */
-      cout<<"join cols "<<joinCol<<endl;
+        else
+        {
+        for(int i=0; i< postfixExpression.size() - 2; i++)
+        {
+            int flag1 =0;
+            int pos = 0;
+            int pos1=-1;
+            if(postfixExpression[i].second == "COLUMN-NAME" && postfixExpression[i+1].second == "COLUMN-NAME" && postfixExpression[i+2].second == "OPERATOR")
+            {
+                int j;
+                if(postfixExpression[i+2].first == "=")
+                {
+                    
+                    for(j = 0; j < field_name1.size(); j++)
+                    {
+                        if(field_name1[j] == postfixExpression[i].first || field_name1[j] == postfixExpression[i+1].first)
+                        {
+                            if(flag1 == 0)
+                                pos = j;
+                            else
+                                pos1 = j;
+                            flag1++;
+                        }
+                    }
+                }
+                if(flag1 == 2)
+                {
+                    if(pos < field_name.size())
+                    {
+                        joinCol1 = field_name1[pos];
+                        //joinCol2 = postfixExpression[i+1].first;
+                    }
+                    else
+                    {
+                        joinCol2 = field_name1[pos];
+                    }
+                    
+                    if(pos1 < field_name.size())
+                    {
+                        joinCol1 = field_name1[pos1];
+                    }
+                    else
+                    {
+                        joinCol2 = field_name1[pos1];
+                    }
+                    if(table_names[min].find("temp") != 0)
+                    {
+                        
+                    }
+                    if(table_names[min].find("temp") != 0)
+                    {
+                        
+                        string ss= table_names[min];
+                        joinCol1 = joinCol1.substr(joinCol1.find(".")+1, joinCol1.size()-1);
+                        relation_ptr[min] = two_pass_sort(relation_ptr[min], ss, joinCol1);
+            
+                    }
+            
+                    if(table_names[s_min].find("temp") != 0)
+                    {
+                        string ss= table_names[s_min];
+                        joinCol2 = joinCol2.substr(joinCol2.find(".")+1, joinCol2.size()-1);
+                        relation_ptr[s_min] = two_pass_sort(relation_ptr[s_min], ss, joinCol2);
+                    }
+                    
+                    
+                    break;
+                }
+            }
+            
+        }
+        }
       int mem_size = mem->getMemorySize();
       if(mem_size - 2 > relation_size[min])
       {
           //One pass join starts
           relation_ptr[min]->getBlocks(0,0,relation_size[min]);
           vector<Tuple> tp1 = mem->getTuples(0,relation_size[min]);
-          cout<<"one pass here "<<endl;
           for(int i = 0; i < tp1.size(); i++)
           {
-    
               if(satisfies_condition1(tp1[i], table_names[min], field_name, field_types, postfixExpression) == false)
               {
                   continue;
@@ -1509,12 +1564,11 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 for(int j = 0; j < tp2.size(); j++)
                 {
                     flag = 0;
-                    cout<<"join col"<<joinCol<<endl;
-                    if(joinCol != "")
+                    if(joinCol1 != "")
                     {
                             flag = 1;
-                            int sid1 = tp1[i].getField(joinCol).integer;
-                            int sid2 = tp2[j].getField(joinCol).integer;
+                            int sid1 = tp1[i].getField(joinCol1).integer;
+                            int sid2 = tp2[j].getField(joinCol2).integer;
                             cout<<"sid1 "<<sid1<<"sid2 "<<sid2<<endl;
                             if(sid1 == sid2)
                             {
@@ -1522,7 +1576,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                             }
                             if(i == 0)
                             {
-                                cout<<"max "<<max_lar<<" min "<<min_lar<<"  sid "<<sid2<<endl;
                                 if(sid2 > max_lar)
                                 {
                                     max_lar = sid2;
@@ -1535,7 +1588,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                                 
                                 if(sid1 == sid2)
                                 {
-                                    cout<<"sid 1 is "<<sid1<<"  sid 2 is "<<sid2<<endl;
                                     flag = 2;
                                 }
                             }
@@ -1548,19 +1600,16 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
         
                                 if(satisfies_condition1(tp2[j], table_names[s_min], field_name2, field_types2,postfixExpression) == false)
                                 {
-                                    cout<<"breakkkk"<<endl;
                                     break;
                                 }
                             
-                                if(tp1[i].getField(joinCol).integer < tp2[j].getField(joinCol).integer)
+                                if(tp1[i].getField(joinCol1).integer < tp2[j].getField(joinCol2).integer)
                                 {
-                                    cout<<"breakkkk"<<endl;
                                     break;
                                 }
                                 
                                 if(sid1 == sid2)
                                 {
-                                    cout<<"sid 1 is "<<sid1<<"  sid 2 is "<<sid2<<endl;
                                     flag = 2;
                                 }
                             }
@@ -1595,17 +1644,9 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                     }
                     if(flag == 0 || flag == 2)
                     {
-                        cout<<"satisfies condition "<<endl;
                         
                         appendTupleToRelation(temp_ptr, relation_size[min]+1, tuple);
-                        cout<<tuple<<endl;
                     }
-                    /*if(satisfies_condition1(tuple, relation_name, field_name1, field_types1,postfixExpression) == true)
-                    {
-                        cout<<"satisfies condition "<<endl;
-                        appendTupleToRelation(temp_ptr, relation_size[min]+1, tuple);
-                        cout<<tuple<<endl;
-                    }*/
                 }
               }
           }
@@ -1637,10 +1678,10 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                 for(int j = 0; j < tp2.size(); j++)
                 {
                     
-                    if(joinCol != "")
+                    if(joinCol1 != "")
                     {
-                        int sid1 = tp1[m].getField(joinCol).integer;
-                        int sid2 = tp2[j].getField(joinCol).integer;
+                        int sid1 = tp1[m].getField(joinCol1).integer;
+                        int sid2 = tp2[j].getField(joinCol2).integer;
                         
 
                         if(i == 0 && m == 0)
@@ -1672,7 +1713,6 @@ static bool  processTupleOperator(Tuple tuple, string table_names, string op, pa
                         
                             if(sid1 < sid2)
                             {
-                                cout<<"breakkkk"<<endl;
                                 flag = 1;
                                 break;
                             }
