@@ -1,6 +1,5 @@
-*************************
-** Introduction        **
-*************************
+#Introduction
+
 Project 2 for CSCE 608 Database Systems, Fall 2017.
 Github Repository located at: https://github.com/caffrey26/db_project_2
 
