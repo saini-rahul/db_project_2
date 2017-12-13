@@ -536,8 +536,9 @@ char *yytext;
 #include <stdio.h>
 #include "typ.h"
 #include "y.tab.h"
-//extern "C" int yylex();
-#line 541 "lex.yy.c"
+
+//Given sentences are splitted into tokens and send to typ.y for grammer check
+#line 542 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -724,10 +725,10 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 8 "typ.l"
+#line 10 "typ.l"
 
 
-#line 731 "lex.yy.c"
+#line 732 "lex.yy.c"
 
 	if ( !(yy_init) )
 		{
@@ -812,234 +813,234 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 10 "typ.l"
+#line 12 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 11 "typ.l"
+#line 13 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 12 "typ.l"
+#line 14 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 13 "typ.l"
+#line 15 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 14 "typ.l"
+#line 16 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 15 "typ.l"
+#line 17 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 16 "typ.l"
+#line 18 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 17 "typ.l"
+#line 19 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 18 "typ.l"
+#line 20 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 19 "typ.l"
+#line 21 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 20 "typ.l"
+#line 22 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 21 "typ.l"
+#line 23 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 22 "typ.l"
+#line 24 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 23 "typ.l"
+#line 25 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 24 "typ.l"
+#line 26 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 25 "typ.l"
+#line 27 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 26 "typ.l"
+#line 28 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 27 "typ.l"
+#line 29 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 28 "typ.l"
+#line 30 "typ.l"
 { return yytext[0]; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 30 "typ.l"
+#line 32 "typ.l"
 { return EE; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 31 "typ.l"
+#line 33 "typ.l"
 { return GE; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 32 "typ.l"
+#line 34 "typ.l"
 { return LE; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 33 "typ.l"
+#line 35 "typ.l"
 { return NE; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 34 "typ.l"
+#line 36 "typ.l"
 { return AA; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 35 "typ.l"
+#line 37 "typ.l"
 { return OO; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 37 "typ.l"
+#line 39 "typ.l"
 { return CREATE; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 38 "typ.l"
+#line 40 "typ.l"
 { return TABLE; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 39 "typ.l"
+#line 41 "typ.l"
 { return WHERE; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 40 "typ.l"
+#line 42 "typ.l"
 { return DELETE; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 41 "typ.l"
+#line 43 "typ.l"
 { return DISTINCT; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 42 "typ.l"
+#line 44 "typ.l"
 { return FROM; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 43 "typ.l"
+#line 45 "typ.l"
 { return SELECT; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 44 "typ.l"
+#line 46 "typ.l"
 { return INTO; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 45 "typ.l"
+#line 47 "typ.l"
 { return VALUES; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 46 "typ.l"
+#line 48 "typ.l"
 { return DROP; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 47 "typ.l"
+#line 49 "typ.l"
 { return ORDER; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 48 "typ.l"
+#line 50 "typ.l"
 { return BY; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 49 "typ.l"
+#line 51 "typ.l"
 { return INSERT; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 50 "typ.l"
+#line 52 "typ.l"
 { return NUL; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 51 "typ.l"
+#line 53 "typ.l"
 { return OR; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 52 "typ.l"
+#line 54 "typ.l"
 { return AND; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 53 "typ.l"
+#line 55 "typ.l"
 { return INT_L; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 54 "typ.l"
+#line 56 "typ.l"
 { return STR20_L; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 55 "typ.l"
+#line 57 "typ.l"
 { return 0; }
 	YY_BREAK
 case 45:
 /* rule 45 can match eol */
 YY_RULE_SETUP
-#line 57 "typ.l"
+#line 59 "typ.l"
 { 
 return NEWLINE; };  
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 60 "typ.l"
+#line 62 "typ.l"
 { 
 yylval.sttr1=(char *)yytext;
 int i=0;
@@ -1054,27 +1055,26 @@ return LITERAL;
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 72 "typ.l"
+#line 74 "typ.l"
 { 
 yylval.sttr = (char *)yytext;
-cout<<"here is "<<yylval.sttr<<endl;
 return NAME; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 77 "typ.l"
+#line 78 "typ.l"
 { yylval.d=atoi(yytext);
          return(INTEGER);
         }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 80 "typ.l"
+#line 81 "typ.l"
 ;
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 84 "typ.l"
+#line 83 "typ.l"
 ECHO;
 	YY_BREAK
 #line 1081 "lex.yy.c"
@@ -2075,8 +2075,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 84 "typ.l"
-
+#line 83 "typ.l"
 
 
 

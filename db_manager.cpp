@@ -79,7 +79,7 @@ void db_manager::printSelect(vector<vector<string>> result)
                 if(values[i] == "2147483647")
                     cout<<"NULL"<<"\t";
                 else
-                    cout<<values[i]<<"\t";
+                    cout<<values[i]<<"\t"; 
             }
             cout<<endl;
       }
